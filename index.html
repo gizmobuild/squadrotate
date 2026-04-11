@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SquadRotate</title>
+<style>
+  :root {
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --border: #475569;
+    --gk: #a855f7;
+    --def: #3b82f6;
+    --mid: #f59e0b;
+    --str: #ef4444;
+    --bench: #64748b;
+    --navy: #1d4ed8;
+    --navy-light: #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 14px; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .logo { font-size: 1.15rem; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
+  .game-info input { background: transparent; border: none; border-bottom: 1px dashed var(--border); color: var(--text2); font-size: 0.75rem; width: 140px; text-align: right; outline: none; }
+
+  /* TEAM SWITCHER */
+  .team-switcher { display: flex; gap: 6px; }
+  .team-btn { flex: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-align: center; }
+  .team-btn.active-u78  { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+  .team-btn.active-u912 { background: #3a1f00; border-color: #ff6a00; color: #ff9a4d; }
+
+  /* TABS */
+  nav { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
+  nav button { flex: 1; padding: 9px; background: none; border: none; color: var(--text2); font-size: 0.78rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  nav button.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* VIEWS */
+  .view { display: none; padding: 10px; }
+  .view.active { display: block; }
+
+  /* ABSENT PANEL */
+  .absent-panel { background: var(--surface); border-radius: 8px; padding: 9px 11px; margin-bottom: 10px; }
+  .absent-panel h3 { font-size: 0.7rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 7px; }
+  .absent-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .absent-chip { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); font-size: 0.72rem; cursor: pointer; user-select: none; transition: all 0.15s; }
+  .absent-chip.absent { background: var(--red); border-color: var(--red); color: white; text-decoration: line-through; }
+
+  /* BUTTONS */
+  .action-bar { display: flex; gap: 7px; margin-bottom: 10px; }
+  .btn { padding: 7px 13px; border-radius: 6px; border: none; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: var(--green); color: #0f172a; }
+  .btn-primary:hover { background: #16a34a; }
+  .btn-secondary { background: var(--surface2); color: var(--text); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-danger { background: var(--surface2); color: var(--red); border: 1px solid var(--red); }
+
+  /* SHIFT CARDS */
+  .shifts-container { display: flex; flex-direction: column; gap: 9px; }
+  .shift-card { background: var(--surface); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .shift-header { display: flex; align-items: center; justify-content: space-between; padding: 7px 11px; background: var(--surface2); }
+  .shift-title { font-weight: 700; font-size: 0.88rem; }
+  .shift-score { display: flex; align-items: center; gap: 7px; font-size: 0.78rem; }
+  .traffic-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .traffic-green { background: var(--green); box-shadow: 0 0 5px var(--green); }
+  .traffic-yellow { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); }
+  .traffic-red { background: var(--red); box-shadow: 0 0 5px var(--red); }
+
+  .shift-body { padding: 7px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .player-row { display: flex; align-items: center; padding: 4px 6px; border-radius: 5px; background: var(--bg); gap: 4px; }
+  .player-name { font-size: 0.76rem; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-name.benched { color: var(--text2); }
+  .role-select { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; max-width: 86px; }
+  .role-select.role-gk  { border-color: var(--gk);    color: var(--gk); }
+  .role-select.role-def { border-color: var(--def);   color: var(--def); }
+  .role-select.role-mid { border-color: var(--mid);   color: var(--mid); }
+  .role-select.role-str { border-color: var(--str);   color: var(--str); }
+  .role-select.role-bench { border-color: var(--bench); color: var(--text2); }
+
+  .shift-summary { padding: 5px 11px; background: var(--bg); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.68rem; color: var(--text2); flex-wrap: wrap; gap: 4px; }
+  .role-count { display: flex; gap: 5px; flex-wrap: wrap; }
+  .rc { padding: 1px 5px; border-radius: 4px; font-size: 0.66rem; font-weight: 600; }
+  .rc-gk    { background: rgba(168,85,247,0.2); color: var(--gk); }
+  .rc-def   { background: rgba(59,130,246,0.2);  color: var(--def); }
+  .rc-mid   { background: rgba(245,158,11,0.2);  color: var(--mid); }
+  .rc-str   { background: rgba(239,68,68,0.2);   color: var(--str); }
+  .rc-bench { background: rgba(100,116,139,0.2); color: var(--text2); }
+  .rc-warn  { background: rgba(239,68,68,0.25);  color: var(--red); border: 1px solid rgba(239,68,68,0.5); }
+
+  /* STATS */
+  .stats-panel { background: var(--surface); border-radius: 10px; margin-top: 9px; overflow: hidden; border: 1px solid var(--border); }
+  .stats-panel h3 { padding: 7px 11px; font-size: 0.7rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; background: var(--surface2); }
+  .stats-table { width: 100%; font-size: 0.74rem; border-collapse: collapse; }
+  .stats-table th { padding: 5px 9px; text-align: left; color: var(--text2); font-weight: 500; border-bottom: 1px solid var(--border); }
+  .stats-table td { padding: 4px 9px; border-bottom: 1px solid rgba(71,85,105,0.3); }
+  .stats-table tr:last-child td { border-bottom: none; }
+  .bar-bg { background: var(--surface2); border-radius: 3px; height: 5px; width: 50px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 3px; }
+  .bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width 0.3s; }
+  .bar-fill.warn { background: var(--yellow); }
+  .bar-fill.over { background: var(--red); }
+  .tag { display: inline-block; padding: 1px 5px; border-radius: 999px; font-size: 0.63rem; font-weight: 600; margin-left: 3px; }
+  .tag-gk   { background: rgba(168,85,247,0.2); color: var(--gk); }
+  .tag-warn { background: rgba(239,68,68,0.2);  color: var(--red); }
+
+  /* ROSTER */
+  .roster-grid { display: grid; gap: 7px; }
+  .player-card { background: var(--surface); border-radius: 10px; padding: 11px; border: 1px solid var(--border); cursor: pointer; }
+  .player-card:hover { border-color: var(--green); }
+  .player-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .player-card-name { font-weight: 600; font-size: 0.9rem; }
+  .power-badge { padding: 2px 7px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; }
+  .power-1 { background: rgba(239,68,68,0.2);  color: var(--red);    border: 1px solid var(--red); }
+  .power-2 { background: rgba(245,158,11,0.2); color: var(--yellow); border: 1px solid var(--yellow); }
+  .power-3 { background: rgba(34,197,94,0.2);  color: var(--green);  border: 1px solid var(--green); }
+  .player-meta { font-size: 0.72rem; color: var(--text2); margin-bottom: 5px; }
+  .pos-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pos-chip { padding: 2px 7px; border-radius: 4px; font-size: 0.68rem; font-weight: 500; }
+  .pos-gk  { background: rgba(168,85,247,0.2); color: var(--gk); }
+  .pos-def { background: rgba(59,130,246,0.2);  color: var(--def); }
+  .pos-mid { background: rgba(245,158,11,0.2);  color: var(--mid); }
+  .pos-str { background: rgba(239,68,68,0.2);   color: var(--str); }
+  .add-player-btn { width: 100%; padding: 11px; border-radius: 10px; border: 2px dashed var(--border); background: transparent; color: var(--text2); font-size: 0.82rem; cursor: pointer; margin-top: 4px; }
+  .add-player-btn:hover { border-color: var(--green); color: var(--green); }
+
+  /* PRACTICE */
+  .practice-section { background: var(--surface); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 10px; }
+  .practice-section h3 { padding: 8px 13px; font-size: 0.78rem; font-weight: 700; background: var(--surface2); }
+  .practice-table { width: 100%; font-size: 0.78rem; border-collapse: collapse; }
+  .practice-table th { padding: 7px 11px; text-align: left; color: var(--text2); font-size: 0.7rem; border-bottom: 1px solid var(--border); }
+  .practice-table td { padding: 7px 11px; border-bottom: 1px solid rgba(71,85,105,0.3); vertical-align: top; }
+  .practice-table tr:last-child td { border-bottom: none; }
+  .practice-table td:first-child { color: var(--green); font-weight: 600; white-space: nowrap; }
+  .week-card { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 7px; overflow: hidden; }
+  .week-header { padding: 7px 13px; background: var(--surface2); font-weight: 700; font-size: 0.83rem; }
+  .week-body { padding: 9px 13px; display: grid; gap: 5px; }
+  .week-row { display: grid; gap: 4px; font-size: 0.76rem; }
+  .week-row .label { color: var(--green); font-weight: 600; font-size: 0.68rem; text-transform: uppercase; margin-bottom: 1px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 12px; padding: 18px; width: 100%; max-width: 360px; border: 1px solid var(--border); }
+  .modal h2 { font-size: 0.95rem; margin-bottom: 13px; }
+  .field-group { margin-bottom: 9px; }
+  .field-group label { display: block; font-size: 0.68rem; color: var(--text2); margin-bottom: 3px; text-transform: uppercase; }
+  .field-group input, .field-group select { width: 100%; padding: 7px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 0.82rem; }
+  .modal-actions { display: flex; gap: 7px; margin-top: 14px; }
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .checkbox-group label { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; cursor: pointer; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); color: var(--text); padding: 9px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; transition: transform 0.3s; z-index: 300; border: 1px solid var(--border); white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (min-width: 540px)  { .shift-body { grid-template-columns: repeat(3, 1fr); } .roster-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 900px)  { .roster-grid { grid-template-columns: repeat(3, 1fr); } .view { max-width: 960px; margin: 0 auto; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo">⚽ SquadRotate</div>
+    <div class="game-info"><input type="text" id="gameLabel" placeholder="vs. Opponent · Date" maxlength="30"></div>
+  </div>
+  <div class="team-switcher">
+    <button class="team-btn" id="btnU78"  onclick="switchTeam('u78')">U7–U8 Navy Blue</button>
+    <button class="team-btn" id="btnU912" onclick="switchTeam('u912')">U9–U12</button>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showView('gameday',event)">Game Day</button>
+  <button onclick="showView('roster',event)">Roster</button>
+  <button onclick="showView('practice',event)">Practice</button>
+</nav>
+
+<!-- GAME DAY VIEW -->
+<div id="view-gameday" class="view active">
+  <div class="absent-panel">
+    <h3>Mark Absent (tap to toggle)</h3>
+    <div class="absent-chips" id="absentChips"></div>
+  </div>
+  <div class="action-bar">
+    <button class="btn btn-primary" onclick="autoAssign()">⚡ Auto-Assign All</button>
+    <button class="btn btn-secondary" onclick="clearAllShifts()">Clear</button>
+  </div>
+  <div class="shifts-container" id="shiftsContainer"></div>
+  <div class="stats-panel">
+    <h3>Player Rotation Tracker</h3>
+    <table class="stats-table" id="statsTable"></table>
+  </div>
+</div>
+
+<!-- ROSTER VIEW -->
+<div id="view-roster" class="view">
+  <div class="roster-grid" id="rosterGrid"></div>
+  <button class="add-player-btn" onclick="openAddPlayer()">+ Add Player</button>
+</div>
+
+<!-- PRACTICE VIEW -->
+<div id="view-practice" class="view">
+  <div class="practice-section">
+    <h3>Daily Practice Routine</h3>
+    <table class="practice-table">
+      <thead><tr><th>Time</th><th>Activity</th><th>Focus</th></tr></thead>
+      <tbody>
+        <tr><td>00–10m</td><td>Warm-up &amp; Footwork</td><td>Dynamic running + Training ladder for agility.</td></tr>
+        <tr><td>10–20m</td><td>Strategy Session</td><td>Magnet board talk: Position names and daily goal.</td></tr>
+        <tr><td>20–50m</td><td>Technical Drills</td><td>Small group rotations (Coaches lead specific stations).</td></tr>
+        <tr><td>50–90m</td><td>Game Play</td><td>Scrimmage with "Freeze-Frame" coaching moments.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="weeklyAgenda"></div>
+</div>
+
+<!-- ADD/EDIT PLAYER MODAL -->
+<div class="modal-overlay" id="addPlayerModal">
+  <div class="modal">
+    <h2 id="modalTitle">Add Player</h2>
+    <div class="field-group"><label>Name</label><input type="text" id="mpName" placeholder="First Last"></div>
+    <div class="field-group">
+      <label>Power Score (1–3)</label>
+      <select id="mpPower">
+        <option value="1">1 – Little experience</option>
+        <option value="2" selected>2 – Some experience</option>
+        <option value="3">3 – Very experienced</option>
+      </select>
+    </div>
+    <div class="field-group"><label>Kit Number</label><input type="text" id="mpKit" placeholder="#" maxlength="3"></div>
+    <div class="field-group">
+      <label>Preferred Positions</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" value="Goalkeeper"> GK</label>
+        <label><input type="checkbox" value="Defense"> DEF</label>
+        <label><input type="checkbox" value="Midfield"> MID</label>
+        <label><input type="checkbox" value="Striker"> STR</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="savePlayer()">Save</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="modalDeleteBtn" style="display:none;margin-left:auto" onclick="deletePlayer()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const ROLES      = ['Goalkeeper','Defense','Midfield','Striker','Bench'];
+const ROLE_ABBR  = { Goalkeeper:'GK', Defense:'DEF', Midfield:'MID', Striker:'STR', Bench:'BN' };
+const ROLE_CLASS = { Goalkeeper:'role-gk', Defense:'role-def', Midfield:'role-mid', Striker:'role-str', Bench:'role-bench' };
+const POS_CLASS  = { Goalkeeper:'pos-gk', Defense:'pos-def', Midfield:'pos-mid', Striker:'pos-str' };
+const FORMATION  = { Goalkeeper:1, Defense:3, Midfield:1, Striker:2 }; // 3-1-2 / 7v7
+const NUM_SHIFTS = 6;
+
+// ─── TEAM DEFINITIONS ────────────────────────────────────────────────────────
+const TEAMS = {
+  u78: {
+    label: 'U7–U8 Navy Blue',
+    storageKey: 'squadrotate_u78_v1',
+    defaultPlayers: [
+      { id:1,  name:'Alex Griffin',     power:2, experience:'Some experience',   positions:['Midfield','Goalkeeper','Defense'], kit:'' },
+      { id:2,  name:'Alexander Kinsey', power:2, experience:'Some experience',   positions:['Defense','Striker'],               kit:'' },
+      { id:3,  name:'Chase Brown',      power:2, experience:'Some experience',   positions:['Midfield','Striker'],              kit:'' },
+      { id:4,  name:'Imani Uwayzor',    power:2, experience:'Some experience',   positions:['Midfield','Striker','Defense'],    kit:'' },
+      { id:5,  name:'Isaac Roemer',     power:3, experience:'Very experienced',  positions:['Midfield','Striker','Defense','Goalkeeper'], kit:'' },
+      { id:6,  name:'Lucy Snow',        power:2, experience:'Some experience',   positions:['Striker','Defense'],               kit:'' },
+      { id:7,  name:'Neema Uwayzor',    power:2, experience:'Some experience',   positions:['Defense','Striker'],               kit:'' },
+      { id:8,  name:'Nia Dzelalic',     power:3, experience:'Very experienced',  positions:['Striker','Midfield'],              kit:'' },
+      { id:9,  name:'Winston St. Vil',  power:2, experience:'Some experience',   positions:['Striker','Defense','Goalkeeper'],  kit:'' },
+      { id:10, name:'Zeke Kienstra',    power:1, experience:'Little experience', positions:['Striker','Defense'],               kit:'' },
+      { id:11, name:'Zeyn Dzelalic',    power:2, experience:'Some experience',   positions:['Striker','Defense'],               kit:'' },
+      { id:12, name:'Zoe Cusumano',     power:2, experience:'Some experience',   positions:['Defense','Striker'],               kit:'' },
+    ],
+    weeklyAgenda: [
+      { dates:'TBD', strategy:'The 3-1-2 Shape: Show the "Base" of 3.',
+        stations:[
+          { coach:'Brennan',       drill:'Footwork: Ladder drills + Red Light Green Light.' },
+          { coach:'Coach Keenan',  drill:'Dribbling: Sharks & Minnows (Keep ball close).' },
+          { coach:'Coach Gary',    drill:'Shooting: Volley/Redirection into pop-up goals.' },
+        ]},
+      { dates:'TBD', strategy:'The Midfield "Pivot": How the 1 helps the 3 and the 2.',
+        stations:[
+          { coach:'Brennan',       drill:'Spacing: Use cones to show the 3 defenders their "lanes."' },
+          { coach:'Coach Keenan',  drill:'Passing: Simple "Inside of the foot" passing in pairs.' },
+          { coach:'Coach Gary',    drill:'Defense: 1v1 "Shielding" (Protecting the ball).' },
+        ]},
+      { dates:'TBD', strategy:'Passing Triangles: Using the Midfielder to move up.',
+        stations:[
+          { coach:'Brennan',       drill:'Rondo: 3v1 circles. Focus on the triangle shape.' },
+          { coach:'Coach Keenan',  drill:'Agility: Ladder drills + Freeze Tag.' },
+          { coach:'Coach Gary',    drill:'Corners: Basics of kicking from the corner flag.' },
+        ]},
+      { dates:'4/14 & 4/21', strategy:'Game Ready: Kick-offs and Sideline behavior.',
+        stations:[
+          { coach:'Brennan',       drill:'Strikers: The "2" forwards practicing passing to each other.' },
+          { coach:'Coach Keenan',  drill:'Defense: Clearing the ball wide (not up the middle).' },
+          { coach:'Coach Gary',    drill:'Scrimmage: 45-min game using the 3-1-2.' },
+        ]},
+      { dates:'4/28 & 5/5', strategy:'Objective: Body positioning. Practice 1v1s where the defender must stay "Goal Side."',
+        stations:[
+          { coach:'Brennan',       drill:'The "Goal Side" Defense: Teaching the 3 to stay between the attacker and our goal.' },
+          { coach:'Coach Keenan',  drill:'Accuracy shooting (hitting corners).' },
+          { coach:'Coach Gary',    drill:'Corner kick "Traffic" (getting kids in the box).' },
+        ]},
+      { dates:'5/12 & 5/19', strategy:'Objective: Team movement. Moving the 3-1-2 block up and down the field together.',
+        stations:[
+          { coach:'Brennan',       drill:'Supporting the Midfielder: The 3 must step up when the 1 moves forward.' },
+          { coach:'Coach Keenan',  drill:'Rondo (4v1).' },
+          { coach:'Coach Gary',    drill:'Ladder drills + 10-yard sprints.' },
+        ]},
+      { dates:'TBD', strategy:'Objective: The "Give and Go." One striker passes, the other shoots.',
+        stations:[
+          { coach:'Brennan',       drill:'Two-Man Attack: Teaching the 2 forwards to pass instead of both chasing.' },
+          { coach:'Coach Keenan',  drill:'Crossing from the wing.' },
+          { coach:'Coach Gary',    drill:'Goalie training (using gloves/basic saves).' },
+        ]},
+      { dates:'TBD', strategy:'Objective: "Heads up" play. Scrimmage where goals only count after 3 passes.',
+        stations:[
+          { coach:'Brennan',       drill:'Full Field Awareness: Looking up before kicking.' },
+          { coach:'Coach Keenan',  drill:'Overlap passing drills.' },
+          { coach:'Coach Gary',    drill:'High-speed dribbling through cones.' },
+        ]},
+    ],
+  },
+  u912: {
+    label: 'U9–U12',
+    storageKey: 'squadrotate_u912_v1',
+    defaultPlayers: [
+      { id:1,  name:'Adrian Murphy',    power:1, experience:'Little experience', positions:['Striker','Defense'],              kit:'' },
+      { id:2,  name:'Fossouo Mokom',    power:2, experience:'Some experience',   positions:['Defense','Midfield','Striker'],   kit:'' },
+      { id:3,  name:'Genevieve Kruder', power:3, experience:'Very experienced',  positions:['Midfield','Defense'],             kit:'' },
+      { id:4,  name:'Jay Wellbock',     power:2, experience:'Some experience',   positions:['Midfield','Striker'],             kit:'' },
+      { id:5,  name:'Jonah Galvez',     power:2, experience:'Some experience',   positions:['Striker','Defense','Goalkeeper'], kit:'' },
+      { id:6,  name:'Mary Snow',        power:2, experience:'Some experience',   positions:['Defense','Striker'],              kit:'' },
+      { id:7,  name:'Mateo Gurrero',    power:3, experience:'Very experienced',  positions:['Midfield','Striker'],             kit:'' },
+      { id:8,  name:'Nolan Wargo',      power:2, experience:'Some experience',   positions:['Defense','Goalkeeper'],           kit:'' },
+      { id:9,  name:'Reece Myers',      power:2, experience:'Some experience',   positions:['Defense','Goalkeeper'],           kit:'' },
+      { id:10, name:'Skye Matthews',    power:1, experience:'Little experience', positions:['Striker','Defense'],              kit:'' },
+      { id:11, name:'Trent Marshall',   power:3, experience:'Very experienced',  positions:['Striker'],                        kit:'' },
+    ],
+    weeklyAgenda: [
+      { dates:'4/16 & 4/23', strategy:'Match Readiness: Ref signals and field talk.',
+        stations:[
+          { coach:'Brennan',    drill:'Scrimmage: Stop-and-start coaching to fix positioning.' },
+          { coach:'Ignatius',   drill:'Keepers/D: Goalie glove work + Goal kicks.' },
+        ]},
+      { dates:'4/30 & 5/7', strategy:'Objective: Overlap passing. The outside defenders (3) joining the attack.',
+        stations:[
+          { coach:'Brennan',    drill:'Exploiting the Wings: Using the 3-1-2 to stretch the defense.' },
+          { coach:'Ignatius',   drill:'Technical: Corner kick redirection and volley practice.' },
+        ]},
+      { dates:'5/14 & 5/21', strategy:'Objective: Interceptions. Teaching the Midfielder to "read" the opponent\'s pass.',
+        stations:[
+          { coach:'Brennan',    drill:'Winning the Midfield: The "1" must dominate the center.' },
+          { coach:'Ignatius',   drill:'Conditioning: Ladder drills + Shuttle runs with the ball.' },
+        ]},
+      { dates:'TBD', strategy:'Objective: Tactical "Step." The 3 defenders stepping up together on a whistle.',
+        stations:[
+          { coach:'Brennan',    drill:'Advanced Offside: Pulling the line up.' },
+          { coach:'Ignatius',   drill:'Attack: 2v1 drills (Two strikers vs one defender).' },
+        ]},
+      { dates:'TBD', strategy:'Objective: Shot selection. Knowing when to blast it vs. when to tuck it in.',
+        stations:[
+          { coach:'Brennan',    drill:'Final Third Execution: Finishing with power and accuracy.' },
+          { coach:'Ignatius',   drill:'Possession: Full-field Rondo or 4v4 small-sided games.' },
+        ]},
+    ],
+  },
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let currentTeam = localStorage.getItem('squadrotate_activeTeam') || 'u78';
+
+function getTeamState(teamKey) {
+  const def = TEAMS[teamKey];
+  try {
+    const s = localStorage.getItem(def.storageKey);
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return {
+    players: JSON.parse(JSON.stringify(def.defaultPlayers)),
+    shifts: Array.from({length: NUM_SHIFTS}, () => ({})),
+    absent: [],
+    gameLabel: '',
+    nextId: def.defaultPlayers.length + 1,
+  };
+}
+
+function saveTeamState(teamKey, state) {
+  localStorage.setItem(TEAMS[teamKey].storageKey, JSON.stringify(state));
+}
+
+let state = getTeamState(currentTeam);
+
+// ─── TEAM SWITCHING ──────────────────────────────────────────────────────────
+function switchTeam(teamKey) {
+  saveTeamState(currentTeam, state);
+  currentTeam = teamKey;
+  localStorage.setItem('squadrotate_activeTeam', teamKey);
+  state = getTeamState(teamKey);
+  updateTeamUI();
+  renderAll();
+}
+
+function updateTeamUI() {
+  document.getElementById('btnU78').className  = 'team-btn' + (currentTeam === 'u78'  ? ' active-u78'  : '');
+  document.getElementById('btnU912').className = 'team-btn' + (currentTeam === 'u912' ? ' active-u912' : '');
+  document.getElementById('gameLabel').value = state.gameLabel || '';
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function activePlayers() {
+  return state.players.filter(p => !state.absent.includes(p.id));
+}
+
+function renderAll() {
+  renderAbsentChips();
+  renderShifts();
+  renderStats();
+  renderRoster();
+  renderPractice();
+}
+
+function renderAbsentChips() {
+  document.getElementById('absentChips').innerHTML = state.players.map(p => {
+    const absent = state.absent.includes(p.id);
+    return `<span class="absent-chip ${absent?'absent':''}" onclick="toggleAbsent(${p.id})">${p.name.split(' ')[0]}</span>`;
+  }).join('');
+}
+
+function renderShifts() {
+  const container = document.getElementById('shiftsContainer');
+  container.innerHTML = '';
+  const present = activePlayers();
+
+  for (let s = 0; s < NUM_SHIFTS; s++) {
+    const sd = state.shifts[s] || {};
+
+    // Shift score & traffic
+    let score = 0, fieldCount = 0;
+    present.forEach(p => { const r = sd[p.id]||'Bench'; if (r !== 'Bench') { score += p.power; fieldCount++; } });
+    const maxScore = [...present].sort((a,b)=>b.power-a.power).slice(0,7).reduce((t,p)=>t+p.power,0);
+    const ratio = maxScore > 0 ? score/maxScore : 0;
+    const tClass = ratio >= 0.8 ? 'traffic-green' : ratio >= 0.6 ? 'traffic-yellow' : 'traffic-red';
+    const tLabel = ratio >= 0.8 ? 'Strong' : ratio >= 0.6 ? 'OK' : 'Weak';
+
+    // Counts
+    const counts = { Goalkeeper:0, Defense:0, Midfield:0, Striker:0, Bench:0 };
+    present.forEach(p => counts[sd[p.id]||'Bench']++);
+
+    const warnings = [];
+    if (counts.Goalkeeper !== 1 && present.length > 0) warnings.push(`GK: need 1`);
+    if (counts.Defense > FORMATION.Defense) warnings.push(`DEF: ${counts.Defense}/${FORMATION.Defense}`);
+    if (counts.Striker < FORMATION.Striker && fieldCount >= 6) warnings.push(`STR: need ${FORMATION.Striker}`);
+
+    const card = document.createElement('div');
+    card.className = 'shift-card';
+    card.innerHTML = `
+      <div class="shift-header">
+        <span class="shift-title">Shift ${s+1}</span>
+        <div class="shift-score">
+          <span style="color:var(--text2)">Score: <strong style="color:var(--text)">${score}</strong></span>
+          <span class="traffic-dot ${tClass}"></span>
+          <span style="color:var(--text2);font-size:0.68rem">${tLabel}</span>
+        </div>
+      </div>
+      <div class="shift-body" id="sb${s}"></div>
+      <div class="shift-summary">
+        <div class="role-count">
+          <span class="rc rc-gk">GK:${counts.Goalkeeper}</span>
+          <span class="rc rc-def">DEF:${counts.Defense}</span>
+          <span class="rc rc-mid">MID:${counts.Midfield}</span>
+          <span class="rc rc-str">STR:${counts.Striker}</span>
+          <span class="rc rc-bench">BN:${counts.Bench}</span>
+          ${warnings.map(w=>`<span class="rc rc-warn">⚠ ${w}</span>`).join('')}
+        </div>
+        <span>${fieldCount} on field</span>
+      </div>`;
+    container.appendChild(card);
+
+    const body = document.getElementById(`sb${s}`);
+    present.forEach(p => {
+      const role = sd[p.id] || 'Bench';
+      const row = document.createElement('div');
+      row.className = 'player-row';
+      row.innerHTML = `
+        <span class="${role==='Bench'?'player-name benched':'player-name'}" title="${p.name}">${p.name.split(' ')[0]}</span>
+        <select class="role-select ${ROLE_CLASS[role]}" onchange="setRole(${s},${p.id},this.value)">
+          ${ROLES.map(r=>`<option value="${r}"${r===role?' selected':''}>${ROLE_ABBR[r]}</option>`).join('')}
+        </select>`;
+      body.appendChild(row);
+    });
+
+    // Absent players greyed out
+    state.players.filter(p => state.absent.includes(p.id)).forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'player-row';
+      row.style.opacity = '0.3';
+      row.innerHTML = `<span class="player-name benched" style="text-decoration:line-through">${p.name.split(' ')[0]}</span><span style="font-size:0.68rem;color:var(--text2)">Absent</span>`;
+      body.appendChild(row);
+    });
+  }
+}
+
+function renderStats() {
+  const rows = state.players.map(p => {
+    let played = 0, goalie = 0;
+    state.shifts.forEach(s => {
+      const r = s[p.id];
+      if (r && r !== 'Bench') played++;
+      if (r === 'Goalkeeper') goalie++;
+    });
+    return {p, played, goalie};
+  });
+
+  document.getElementById('statsTable').innerHTML = `
+    <thead><tr><th>Player</th><th>Shifts</th><th>GK</th></tr></thead>
+    <tbody>${rows.map(({p, played, goalie}) => {
+      const absent = state.absent.includes(p.id);
+      const pct = played / NUM_SHIFTS;
+      const bClass = pct > 0.85 ? 'over' : pct > 0.5 ? '' : 'warn';
+      return `<tr style="${absent?'opacity:0.35':''}">
+        <td>${p.name.split(' ')[0]} <span style="font-size:0.62rem;color:var(--text2)">${p.kit?'#'+p.kit:''}</span></td>
+        <td>${played}/${NUM_SHIFTS} <span class="bar-bg"><span class="bar-fill ${bClass}" style="width:${Math.round(pct*100)}%"></span></span></td>
+        <td>${goalie>1?`<span class="tag tag-warn">${goalie}x</span>`:goalie===1?`<span class="tag tag-gk">1x</span>`:'–'}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+}
+
+function renderRoster() {
+  document.getElementById('rosterGrid').innerHTML = state.players.map(p => `
+    <div class="player-card" onclick="openEditPlayer(${p.id})">
+      <div class="player-card-header">
+        <span class="player-card-name">${p.name}</span>
+        <span class="power-badge power-${p.power}">P${p.power}</span>
+      </div>
+      <div class="player-meta">${p.experience}${p.kit?' · #'+p.kit:''}</div>
+      <div class="pos-chips">${p.positions.map(pos=>`<span class="pos-chip ${POS_CLASS[pos]||''}">${ROLE_ABBR[pos]||pos}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+function renderPractice() {
+  const agenda = TEAMS[currentTeam].weeklyAgenda;
+  document.getElementById('weeklyAgenda').innerHTML = `
+    <div class="practice-section" style="margin-top:0">
+      <h3>Weekly Agenda — Formation: 3-1-2 (DEF·MID·STR)</h3>
+    </div>
+    ${agenda.map(w => `
+      <div class="week-card">
+        <div class="week-header">${w.dates}</div>
+        <div class="week-body">
+          <div class="week-row"><div class="label">Strategy</div><div>${w.strategy}</div></div>
+          ${w.stations.map(st=>`<div class="week-row"><div class="label">${st.coach}</div><div>${st.drill}</div></div>`).join('')}
+        </div>
+      </div>`).join('')}`;
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
+function toggleAbsent(id) {
+  const i = state.absent.indexOf(id);
+  if (i >= 0) state.absent.splice(i,1); else state.absent.push(id);
+  saveTeamState(currentTeam, state);
+  renderAll();
+}
+
+function setRole(shiftIdx, playerId, role) {
+  if (!state.shifts[shiftIdx]) state.shifts[shiftIdx] = {};
+  state.shifts[shiftIdx][playerId] = role;
+  saveTeamState(currentTeam, state);
+  renderShifts();
+  renderStats();
+}
+
+function clearAllShifts() {
+  if (!confirm('Clear all shift assignments?')) return;
+  state.shifts = Array.from({length: NUM_SHIFTS}, () => ({}));
+  saveTeamState(currentTeam, state);
+  renderAll();
+  showToast('Shifts cleared');
+}
+
+function autoAssign() {
+  const present = activePlayers();
+  if (!present.length) { showToast('No players available'); return; }
+
+  const goalieCount = {};
+  present.forEach(p => goalieCount[p.id] = 0);
+
+  for (let s = 0; s < NUM_SHIFTS; s++) {
+    const assigned = {};
+    const pool = [...present];
+    const quota = {...FORMATION};
+
+    // 1. Goalkeeper — rotate, fewest GK shifts first
+    const gkOk = pool.filter(p => p.positions.includes('Goalkeeper'));
+    if (gkOk.length) {
+      gkOk.sort((a,b) => goalieCount[a.id] - goalieCount[b.id]);
+      const gk = gkOk[0];
+      assigned[gk.id] = 'Goalkeeper';
+      goalieCount[gk.id]++;
+      pool.splice(pool.indexOf(gk), 1);
+      quota.Goalkeeper--;
+    }
+
+    // 2. Fill DEF, MID, STR by preference, balancing shifts played
+    for (const role of ['Defense','Midfield','Striker']) {
+      let slots = quota[role];
+      const cands = pool.filter(p => !assigned[p.id] && p.positions.includes(role));
+      cands.sort((a,b) => shiftsPlayed(a.id,s) - shiftsPlayed(b.id,s) || b.power - a.power);
+      for (let i = 0; i < cands.length && slots > 0; i++) {
+        const p = cands[i];
+        assigned[p.id] = role;
+        pool.splice(pool.indexOf(p), 1);
+        slots--;
+      }
+      quota[role] = slots;
+    }
+
+    // 3. Fill leftover slots with remaining unassigned players
+    const openRoles = Object.entries(quota).filter(([,c]) => c > 0);
+    for (const p of [...pool]) {
+      if (openRoles.length > 0) {
+        assigned[p.id] = openRoles[0][0];
+        openRoles[0][1]--;
+        if (openRoles[0][1] <= 0) openRoles.shift();
+      } else {
+        assigned[p.id] = 'Bench';
+      }
+    }
+
+    // Ensure all present players have a role
+    present.forEach(p => { if (!assigned[p.id]) assigned[p.id] = 'Bench'; });
+    state.shifts[s] = assigned;
+  }
+
+  saveTeamState(currentTeam, state);
+  renderAll();
+  showToast('Shifts auto-assigned!');
+}
+
+function shiftsPlayed(playerId, beforeShift) {
+  let n = 0;
+  for (let s = 0; s < beforeShift; s++) {
+    const r = state.shifts[s] && state.shifts[s][playerId];
+    if (r && r !== 'Bench') n++;
+  }
+  return n;
+}
+
+// ─── ROSTER MODAL ────────────────────────────────────────────────────────────
+let editingPlayerId = null;
+
+function openAddPlayer() {
+  editingPlayerId = null;
+  document.getElementById('modalTitle').textContent = 'Add Player';
+  document.getElementById('mpName').value = '';
+  document.getElementById('mpPower').value = '2';
+  document.getElementById('mpKit').value = '';
+  document.querySelectorAll('#addPlayerModal input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('modalDeleteBtn').style.display = 'none';
+  document.getElementById('addPlayerModal').classList.add('open');
+}
+
+function openEditPlayer(id) {
+  const p = state.players.find(x => x.id === id);
+  if (!p) return;
+  editingPlayerId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Player';
+  document.getElementById('mpName').value = p.name;
+  document.getElementById('mpPower').value = p.power;
+  document.getElementById('mpKit').value = p.kit||'';
+  document.querySelectorAll('#addPlayerModal input[type=checkbox]').forEach(cb => cb.checked = p.positions.includes(cb.value));
+  document.getElementById('modalDeleteBtn').style.display = 'block';
+  document.getElementById('addPlayerModal').classList.add('open');
+}
+
+function savePlayer() {
+  const name = document.getElementById('mpName').value.trim();
+  if (!name) { showToast('Enter a name'); return; }
+  const power = parseInt(document.getElementById('mpPower').value);
+  const kit = document.getElementById('mpKit').value.trim();
+  const positions = [...document.querySelectorAll('#addPlayerModal input[type=checkbox]:checked')].map(cb => cb.value);
+  if (!positions.length) { showToast('Select at least one position'); return; }
+  const expMap = {1:'Little experience',2:'Some experience',3:'Very experienced'};
+  if (editingPlayerId) {
+    Object.assign(state.players.find(x => x.id === editingPlayerId), {name, power, kit, positions, experience:expMap[power]});
+    showToast('Player updated');
+  } else {
+    state.players.push({id:state.nextId++, name, power, kit, positions, experience:expMap[power]});
+    showToast('Player added');
+  }
+  saveTeamState(currentTeam, state);
+  closeModal();
+  renderAll();
+}
+
+function deletePlayer() {
+  if (!editingPlayerId) return;
+  const p = state.players.find(x => x.id === editingPlayerId);
+  if (!confirm(`Remove ${p.name}?`)) return;
+  state.players = state.players.filter(x => x.id !== editingPlayerId);
+  state.absent  = state.absent.filter(id => id !== editingPlayerId);
+  state.shifts.forEach(s => delete s[editingPlayerId]);
+  saveTeamState(currentTeam, state);
+  closeModal();
+  renderAll();
+  showToast('Player removed');
+}
+
+function closeModal() {
+  document.getElementById('addPlayerModal').classList.remove('open');
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showView(name, e) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  if (e && e.target) e.target.classList.add('active');
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+document.getElementById('gameLabel').addEventListener('input', e => {
+  state.gameLabel = e.target.value;
+  saveTeamState(currentTeam, state);
+});
+
+document.getElementById('addPlayerModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+updateTeamUI();
+renderAll();
+</script>
+</body>
+</html>
