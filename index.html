@@ -269,6 +269,21 @@
   </div>
 </div>
 
+<!-- PRACTICE EDIT MODAL -->
+<div class="modal-overlay" id="practiceModal">
+  <div class="modal" style="max-width:420px;max-height:90vh;overflow-y:auto;">
+    <h2 id="practiceModalTitle">Edit Week</h2>
+    <div class="field-group"><label>Date(s)</label><input type="text" id="pwDates" placeholder="e.g. 4/14 &amp; 4/21"></div>
+    <div class="field-group"><label>Strategy / Objective</label><textarea id="pwStrategy" rows="2" style="width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;resize:vertical;font-family:inherit;"></textarea></div>
+    <div id="pwStations"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="savePracticeWeek()">Save</button>
+      <button class="btn btn-secondary" onclick="closePracticeModal()">Cancel</button>
+      <button class="btn btn-danger" id="practiceDeleteBtn" style="display:none;margin-left:auto" onclick="deletePracticeWeek()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -403,7 +418,12 @@ function getTeamState(teamKey) {
   const def = TEAMS[teamKey];
   try {
     const s = localStorage.getItem(def.storageKey);
-    if (s) return JSON.parse(s);
+    if (s) {
+      const parsed = JSON.parse(s);
+      // Migrate: add weeklyAgenda if missing from older saved state
+      if (!parsed.weeklyAgenda) parsed.weeklyAgenda = JSON.parse(JSON.stringify(def.weeklyAgenda));
+      return parsed;
+    }
   } catch(e) {}
   return {
     players: JSON.parse(JSON.stringify(def.defaultPlayers)),
@@ -411,6 +431,7 @@ function getTeamState(teamKey) {
     absent: [],
     gameLabel: '',
     teamName: def.label,
+    weeklyAgenda: JSON.parse(JSON.stringify(def.weeklyAgenda)),
     nextId: def.defaultPlayers.length + 1,
   };
 }
@@ -584,20 +605,100 @@ function renderRoster() {
 }
 
 function renderPractice() {
-  const agenda = TEAMS[currentTeam].weeklyAgenda;
+  const agenda = state.weeklyAgenda || [];
   document.getElementById('weeklyAgenda').innerHTML = `
-    <div class="practice-section" style="margin-top:0">
-      <h3>Weekly Agenda — Formation: 3-1-2 (DEF·MID·STR)</h3>
+    <div class="practice-section" style="margin-top:0;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:var(--surface2);">
+        <h3 style="padding:0;background:none;">Weekly Agenda — Formation: 3-1-2</h3>
+        <button class="btn btn-primary" style="padding:4px 10px;font-size:0.72rem;" onclick="openAddPracticeWeek()">+ Add Week</button>
+      </div>
     </div>
-    ${agenda.map(w => `
+    ${agenda.map((w,i) => `
       <div class="week-card">
-        <div class="week-header">${w.dates}</div>
+        <div class="week-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>${w.dates || 'TBD'}</span>
+          <button class="btn btn-secondary" style="padding:3px 9px;font-size:0.68rem;" onclick="openEditPracticeWeek(${i})">Edit</button>
+        </div>
         <div class="week-body">
           <div class="week-row"><div class="label">Strategy</div><div>${w.strategy}</div></div>
-          ${w.stations.map(st=>`<div class="week-row"><div class="label">${st.coach}</div><div>${st.drill}</div></div>`).join('')}
+          ${w.stations.map(st=>`<div class="week-row"><div class="label">${st.coach}</div><div>${st.drill||'—'}</div></div>`).join('')}
         </div>
       </div>`).join('')}`;
 }
+
+// ─── PRACTICE CRUD ───────────────────────────────────────────────────────────
+let editingWeekIdx = null;
+
+function openAddPracticeWeek() {
+  editingWeekIdx = null;
+  document.getElementById('practiceModalTitle').textContent = 'Add Week';
+  document.getElementById('pwDates').value = '';
+  document.getElementById('pwStrategy').value = '';
+  const coaches = (state.weeklyAgenda[0]?.stations || TEAMS[currentTeam].weeklyAgenda[0]?.stations || []).map(s => s.coach);
+  renderStationInputs(coaches, []);
+  document.getElementById('practiceDeleteBtn').style.display = 'none';
+  document.getElementById('practiceModal').classList.add('open');
+}
+
+function openEditPracticeWeek(idx) {
+  editingWeekIdx = idx;
+  const w = state.weeklyAgenda[idx];
+  document.getElementById('practiceModalTitle').textContent = 'Edit Week';
+  document.getElementById('pwDates').value = w.dates || '';
+  document.getElementById('pwStrategy').value = w.strategy || '';
+  renderStationInputs(w.stations.map(s=>s.coach), w.stations.map(s=>s.drill));
+  document.getElementById('practiceDeleteBtn').style.display = 'block';
+  document.getElementById('practiceModal').classList.add('open');
+}
+
+function renderStationInputs(coaches, drills) {
+  document.getElementById('pwStations').innerHTML = coaches.map((coach, i) => `
+    <div class="field-group">
+      <label style="color:var(--green);">${coach}</label>
+      <textarea id="pwDrill${i}" rows="2" style="width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;resize:vertical;font-family:inherit;">${drills[i]||''}</textarea>
+    </div>`).join('');
+}
+
+function savePracticeWeek() {
+  const dates    = document.getElementById('pwDates').value.trim();
+  const strategy = document.getElementById('pwStrategy').value.trim();
+  const coaches  = editingWeekIdx !== null
+    ? state.weeklyAgenda[editingWeekIdx].stations.map(s => s.coach)
+    : (state.weeklyAgenda[0]?.stations || TEAMS[currentTeam].weeklyAgenda[0]?.stations || []).map(s => s.coach);
+  const stations = coaches.map((coach, i) => ({
+    coach,
+    drill: (document.getElementById(`pwDrill${i}`)?.value || '').trim(),
+  }));
+  const week = { dates: dates || 'TBD', strategy, stations };
+  if (editingWeekIdx !== null) {
+    state.weeklyAgenda[editingWeekIdx] = week;
+    showToast('Week updated');
+  } else {
+    state.weeklyAgenda.push(week);
+    showToast('Week added');
+  }
+  saveTeamState(currentTeam, state);
+  closePracticeModal();
+  renderPractice();
+}
+
+function deletePracticeWeek() {
+  if (editingWeekIdx === null) return;
+  if (!confirm('Delete this week from the schedule?')) return;
+  state.weeklyAgenda.splice(editingWeekIdx, 1);
+  saveTeamState(currentTeam, state);
+  closePracticeModal();
+  renderPractice();
+  showToast('Week deleted');
+}
+
+function closePracticeModal() {
+  document.getElementById('practiceModal').classList.remove('open');
+}
+
+document.getElementById('practiceModal').addEventListener('click', function(e) {
+  if (e.target === this) closePracticeModal();
+});
 
 // ─── ACTIONS ─────────────────────────────────────────────────────────────────
 function toggleAbsent(id) {
