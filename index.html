@@ -444,6 +444,8 @@ function getTeamState(teamKey) {
       const parsed = JSON.parse(s);
       // Migrate: add weeklyAgenda if missing from older saved state
       if (!parsed.weeklyAgenda) parsed.weeklyAgenda = JSON.parse(JSON.stringify(def.weeklyAgenda));
+      // Migrate: add nextId if missing (prevents NaN ids on new players)
+      if (!parsed.nextId) parsed.nextId = (parsed.players ? Math.max(...parsed.players.map(p => p.id || 0), 0) + 1 : 1);
       return parsed;
     }
   } catch(e) {}
