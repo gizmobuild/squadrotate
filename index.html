@@ -141,6 +141,22 @@
   .mc-mid  { background: rgba(245,158,11,0.2); color: var(--yellow); }
   .mc-high { background: rgba(239,68,68,0.25); color: var(--red); }
 
+  /* FORMATION SELECTOR */
+  .formation-panel { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); padding: 11px 13px; margin-bottom: 12px; }
+  .formation-panel-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); margin-bottom: 9px; }
+  .formation-total { font-size: 0.75rem; color: var(--text2); }
+  .formation-total.valid { color: var(--green); }
+  .formation-total.invalid { color: var(--red); }
+  .formation-inputs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .formation-field { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .formation-field label { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .formation-field label.lbl-gk  { color: var(--gk); }
+  .formation-field label.lbl-def { color: var(--def); }
+  .formation-field label.lbl-mid { color: var(--mid); }
+  .formation-field label.lbl-str { color: var(--str); }
+  .formation-field input[type=number] { width: 52px; padding: 5px; text-align: center; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 0.9rem; font-weight: 700; }
+  .formation-error { font-size: 0.73rem; color: var(--red); margin-top: 6px; min-height: 0; }
+
   /* ROSTER */
   .roster-grid { display: grid; gap: 7px; }
   .player-card { background: var(--surface); border-radius: 10px; padding: 11px; border: 1px solid var(--border); cursor: pointer; }
@@ -212,7 +228,7 @@
 </header>
 
 <nav>
-  <button class="active" onclick="showView('roster',event)">Roster</button>
+  <button class="active" onclick="showView('roster',event)">Team Info</button>
   <button onclick="showView('practice',event)">Practice</button>
   <button onclick="showView('gameday',event)">Game Day</button>
 </nav>
@@ -227,6 +243,16 @@
         oninput="saveTeamName(this.value)">
     </div>
   </div>
+  <!-- Formation selector (#12) -->
+  <div class="formation-panel" id="formationPanel">
+    <div class="formation-panel-header">
+      <span>Formation</span>
+      <span class="formation-total" id="formationTotal"></span>
+    </div>
+    <div class="formation-inputs" id="formationInputs"></div>
+    <div class="formation-error" id="formationError"></div>
+  </div>
+
   <div class="roster-grid" id="rosterGrid"></div>
   <button class="add-player-btn" onclick="openAddPlayer()">+ Add Player</button>
 </div>
@@ -328,8 +354,12 @@ const ROLES      = ['Goalkeeper','Defense','Midfield','Striker','Bench'];
 const ROLE_ABBR  = { Goalkeeper:'GK', Defense:'DEF', Midfield:'MID', Striker:'STR', Bench:'BN' };
 const ROLE_CLASS = { Goalkeeper:'role-gk', Defense:'role-def', Midfield:'role-mid', Striker:'role-str', Bench:'role-bench' };
 const POS_CLASS  = { Goalkeeper:'pos-gk', Defense:'pos-def', Midfield:'pos-mid', Striker:'pos-str' };
-const FORMATION  = { Goalkeeper:1, Defense:3, Midfield:1, Striker:2 }; // 3-1-2 / 7v7
+const FORMATION_DEFAULT = { Goalkeeper:1, Defense:3, Midfield:1, Striker:2 }; // 3-1-2 / 7v7
 const NUM_SHIFTS = 6;
+
+function getFormation() {
+  return (state && state.formation) ? state.formation : { ...FORMATION_DEFAULT };
+}
 
 // ─── TEAM DEFINITIONS ────────────────────────────────────────────────────────
 const TEAMS = {
@@ -458,6 +488,9 @@ function getTeamState(teamKey) {
       const parsed = JSON.parse(s);
       // Migrate: add weeklyAgenda if missing from older saved state
       if (!parsed.weeklyAgenda) parsed.weeklyAgenda = JSON.parse(JSON.stringify(def.weeklyAgenda));
+      // Migrate: add formation and teamSize (issue #12)
+      if (!parsed.formation) parsed.formation = { ...FORMATION_DEFAULT };
+      if (!parsed.teamSize)  parsed.teamSize  = 7;
       return parsed;
     }
   } catch(e) {}
@@ -469,6 +502,8 @@ function getTeamState(teamKey) {
     teamName: def.label,
     weeklyAgenda: JSON.parse(JSON.stringify(def.weeklyAgenda)),
     nextId: def.defaultPlayers.length + 1,
+    formation: { ...FORMATION_DEFAULT },
+    teamSize: 7,
   };
 }
 
@@ -518,6 +553,7 @@ function renderAll() {
   renderShifts();
   renderStats();
   renderMatrix();
+  renderFormationSelector();
   renderRoster();
   renderPractice();
 }
@@ -584,16 +620,18 @@ function renderShifts() {
         errors.push(`No goalkeeper assigned — move one player to GK.`);
       else if (counts.Goalkeeper > 1)
         errors.push(`${counts.Goalkeeper} goalkeepers assigned — only 1 is allowed. Move the extra to another position.`);
-      if (counts.Defense > FORMATION.Defense)
-        errors.push(`${counts.Defense} defenders assigned but formation needs ${FORMATION.Defense}. Move ${counts.Defense - FORMATION.Defense} to another position.`);
-      if (counts.Defense < FORMATION.Defense && fieldCount >= 7)
-        errors.push(`Only ${counts.Defense} of ${FORMATION.Defense} defenders filled — move a bench player to DEF.`);
-      if (counts.Midfield === 0 && fieldCount >= 7)
+      const fm = getFormation();
+      const teamSz = state.teamSize || 7;
+      if (counts.Defense > fm.Defense)
+        errors.push(`${counts.Defense} defenders assigned but formation needs ${fm.Defense}. Move ${counts.Defense - fm.Defense} to another position.`);
+      if (counts.Defense < fm.Defense && fieldCount >= teamSz)
+        errors.push(`Only ${counts.Defense} of ${fm.Defense} defenders filled — move a bench player to DEF.`);
+      if (counts.Midfield === 0 && fieldCount >= teamSz)
         errors.push(`No midfielder assigned — move one player to MID.`);
-      if (counts.Striker < FORMATION.Striker && fieldCount >= 7)
-        errors.push(`Only ${counts.Striker} of ${FORMATION.Striker} strikers filled — move a bench player to STR.`);
-      if (counts.Striker > FORMATION.Striker)
-        errors.push(`${counts.Striker} strikers assigned but formation needs ${FORMATION.Striker}. Move ${counts.Striker - FORMATION.Striker} to another position.`);
+      if (counts.Striker < fm.Striker && fieldCount >= teamSz)
+        errors.push(`Only ${counts.Striker} of ${fm.Striker} strikers filled — move a bench player to STR.`);
+      if (counts.Striker > fm.Striker)
+        errors.push(`${counts.Striker} strikers assigned but formation needs ${fm.Striker}. Move ${counts.Striker - fm.Striker} to another position.`);
     }
     const isValid = hasAnyAssignment && errors.length === 0;
     const cardClass = !hasAnyAssignment ? 'shift-card' : isValid ? 'shift-card shift-valid' : 'shift-card shift-invalid';
@@ -680,6 +718,42 @@ function renderStats() {
         <td>${goalie>1?`<span class="tag tag-warn">${goalie}x</span>`:goalie===1?`<span class="tag tag-gk">1x</span>`:'–'}</td>
       </tr>`;
     }).join('')}</tbody>`;
+}
+
+function renderFormationSelector() {
+  const fm = getFormation();
+  const teamSize = state.teamSize || 7;
+  const total = Object.values(fm).reduce((a,b) => a+b, 0);
+  const valid = total === teamSize;
+
+  const posConfig = [
+    { key:'Goalkeeper', label:'GK',  cls:'lbl-gk'  },
+    { key:'Defense',    label:'DEF', cls:'lbl-def'  },
+    { key:'Midfield',   label:'MID', cls:'lbl-mid'  },
+    { key:'Striker',    label:'STR', cls:'lbl-str'  },
+  ];
+
+  document.getElementById('formationInputs').innerHTML = posConfig.map(({ key, label, cls }) =>
+    `<div class="formation-field">
+       <label class="${cls}">${label}</label>
+       <input type="number" min="0" max="9" value="${fm[key]}" oninput="updateFormation('${key}', this.value)">
+     </div>`
+  ).join('');
+
+  const totalEl = document.getElementById('formationTotal');
+  totalEl.textContent = `${total} / ${teamSize} on field`;
+  totalEl.className = 'formation-total ' + (valid ? 'valid' : 'invalid');
+
+  document.getElementById('formationError').textContent = valid
+    ? ''
+    : `Formation must total ${teamSize} players. Adjust counts above.`;
+}
+
+function updateFormation(key, val) {
+  if (!state.formation) state.formation = { ...FORMATION_DEFAULT };
+  state.formation[key] = parseInt(val, 10) || 0;
+  saveTeamState(currentTeam, state);
+  renderFormationSelector();
 }
 
 function renderRoster() {
@@ -873,7 +947,7 @@ function autoAssign() {
   for (let s = 0; s < NUM_SHIFTS; s++) {
     const assigned = {};
     const pool = [...present];
-    const quota = {...FORMATION};
+    const quota = {...getFormation()};
 
     // 1. Goalkeeper — rotate, fewest GK shifts first
     const gkOk = pool.filter(p => p.positions.includes('Goalkeeper'));
