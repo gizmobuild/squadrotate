@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SquadRotate — Help</title>
+<style>
+  :root {
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --border: #475569;
+    --gk: #a855f7;
+    --def: #3b82f6;
+    --mid: #f59e0b;
+    --str: #ef4444;
+    --bench: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+
+  /* HEADER */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 16px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .logo { font-size: 1.1rem; font-weight: 700; color: var(--green); letter-spacing: -0.5px; white-space: nowrap; }
+  .logo span { color: var(--text2); font-weight: 400; }
+  .back-link { font-size: 0.78rem; color: var(--text2); text-decoration: none; padding: 5px 11px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); white-space: nowrap; transition: all 0.15s; }
+  .back-link:hover { color: var(--green); border-color: var(--green); }
+
+  /* PAGE LAYOUT */
+  .page { max-width: 680px; margin: 0 auto; padding: 20px 14px 48px; }
+
+  /* TABLE OF CONTENTS */
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 28px; }
+  .toc h2 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text2); margin-bottom: 10px; }
+  .toc ol { padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .toc a { color: var(--green); font-size: 0.85rem; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* SECTION */
+  .section { margin-bottom: 36px; scroll-margin-top: 64px; }
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .section-icon { font-size: 1.2rem; }
+  .section-header h2 { font-size: 1.05rem; font-weight: 700; }
+
+  /* SUBSECTION */
+  .subsection { margin-bottom: 20px; }
+  .subsection h3 { font-size: 0.85rem; font-weight: 700; color: var(--green); margin-bottom: 8px; }
+  p { font-size: 0.88rem; color: var(--text); margin-bottom: 8px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* LISTS */
+  ul, ol { padding-left: 20px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
+  li { font-size: 0.86rem; color: var(--text); }
+  li strong { color: var(--text); }
+
+  /* CALLOUT BOXES */
+  .callout { border-radius: 8px; padding: 11px 14px; margin: 10px 0; font-size: 0.84rem; display: flex; gap: 10px; align-items: flex-start; }
+  .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
+  .callout-body { flex: 1; }
+  .callout-body p { font-size: 0.84rem; }
+  .callout.tip   { background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.25); }
+  .callout.warn  { background: rgba(234,179,8,0.08);  border: 1px solid rgba(234,179,8,0.25); }
+  .callout.info  { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); }
+
+  /* POSITION CHIPS */
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; }
+  .chip-gk    { background: rgba(168,85,247,0.2); color: var(--gk); }
+  .chip-def   { background: rgba(59,130,246,0.2); color: var(--def); }
+  .chip-mid   { background: rgba(245,158,11,0.2); color: var(--mid); }
+  .chip-str   { background: rgba(239,68,68,0.2);  color: var(--str); }
+  .chip-bench { background: rgba(100,116,139,0.2); color: var(--bench); }
+  .chip-green { background: rgba(34,197,94,0.15); color: var(--green); }
+  .chip-red   { background: rgba(239,68,68,0.15); color: var(--red); }
+
+  /* TRAFFIC LIGHT DEMO */
+  .tl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 0.84rem; }
+  .tl-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .tl-green  { background: var(--green); box-shadow: 0 0 5px var(--green); }
+  .tl-yellow { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); }
+  .tl-red    { background: var(--red);   box-shadow: 0 0 5px var(--red); }
+
+  /* FORMULA BOX */
+  .formula { background: var(--surface2); border-radius: 8px; padding: 12px 14px; font-size: 0.82rem; color: var(--text2); font-family: 'Courier New', monospace; line-height: 1.8; margin: 10px 0; border: 1px solid var(--border); }
+  .formula strong { color: var(--text); }
+
+  /* MATRIX DEMO */
+  .demo-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; background: var(--surface); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); margin: 10px 0; }
+  .demo-table th { padding: 6px 10px; background: var(--surface2); color: var(--text2); font-weight: 500; text-align: center; border-bottom: 1px solid var(--border); }
+  .demo-table th:first-child { text-align: left; }
+  .demo-table td { padding: 5px 10px; text-align: center; border-bottom: 1px solid rgba(71,85,105,0.3); }
+  .demo-table td:first-child { text-align: left; font-weight: 500; }
+  .demo-table tr:last-child td { border-bottom: none; }
+  .mc-0    { color: var(--text2); }
+  .mc-mid  { display: inline-block; min-width: 22px; padding: 1px 5px; border-radius: 4px; background: rgba(245,158,11,0.2); color: var(--yellow); font-weight: 600; }
+  .mc-high { display: inline-block; min-width: 22px; padding: 1px 5px; border-radius: 4px; background: rgba(239,68,68,0.25); color: var(--red); font-weight: 600; }
+
+  /* POWER BADGES */
+  .power { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; vertical-align: middle; }
+  .power-1 { background: rgba(239,68,68,0.2);  color: var(--red);    border: 1px solid var(--red); }
+  .power-2 { background: rgba(245,158,11,0.2); color: var(--yellow); border: 1px solid var(--yellow); }
+  .power-3 { background: rgba(34,197,94,0.2);  color: var(--green);  border: 1px solid var(--green); }
+
+  /* FOOTER */
+  footer { text-align: center; padding: 24px 14px; font-size: 0.75rem; color: var(--text2); border-top: 1px solid var(--border); }
+  footer a { color: var(--green); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SquadRotate <span>/ Help</span></div>
+  <a class="back-link" href="../">← Back to App</a>
+</header>
+
+<div class="page">
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#getting-started">Getting Started</a></li>
+      <li><a href="#roster">Managing Your Roster</a></li>
+      <li><a href="#practice">Practice Schedule</a></li>
+      <li><a href="#game-day">Game Day</a></li>
+      <li><a href="#stats">Statistics &amp; Tracking</a></li>
+      <li><a href="#logic">Under the Hood — How the Logic Works</a></li>
+      <li><a href="#data">Your Data &amp; Storage</a></li>
+    </ol>
+  </div>
+
+
+  <!-- 1. GETTING STARTED -->
+  <div class="section" id="getting-started">
+    <div class="section-header">
+      <span class="section-icon">&#9654;</span>
+      <h2>Getting Started</h2>
+    </div>
+
+    <div class="subsection">
+      <h3>Switching teams</h3>
+      <p>SquadRotate supports two independent team slots — one for U7–U8 and one for U9–U12. Use the buttons at the top of the page to switch between them. Each team has its own roster, practice schedule, and game day state, stored separately.</p>
+      <p>Team names can be edited directly from the Roster tab. Tap the name to change it — it updates everywhere, including the switcher buttons.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Tab order</h3>
+      <p>The three tabs follow the natural coaching workflow:</p>
+      <ul>
+        <li><strong>Roster</strong> — build and maintain your player list</li>
+        <li><strong>Practice</strong> — plan your weekly sessions</li>
+        <li><strong>Game Day</strong> — run your in-game rotation</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- 2. ROSTER -->
+  <div class="section" id="roster">
+    <div class="section-header">
+      <span class="section-icon">&#128101;</span>
+      <h2>Managing Your Roster</h2>
+    </div>
+
+    <div class="subsection">
+      <h3>Adding a player</h3>
+      <p>Tap <strong>+ Add Player</strong> at the bottom of the Roster tab. Fill in:</p>
+      <ul>
+        <li><strong>Name</strong> — how they'll appear on shift cards</li>
+        <li><strong>Kit number</strong> — displayed on their roster card</li>
+        <li><strong>Power rating</strong> — your assessment of the player's current ability level:
+          <span class="power power-1">1 Developing</span>
+          <span class="power power-2">2 Solid</span>
+          <span class="power power-3">3 Strong</span>
+        </li>
+        <li><strong>Preferred positions</strong> — check all positions they're comfortable playing; this guides the auto-assign algorithm</li>
+        <li><strong>Notes</strong> — any coaching notes (attendance patterns, skill areas to develop, etc.); shows as a truncated preview on the roster card</li>
+      </ul>
+    </div>
+
+    <div class="subsection">
+      <h3>Editing or removing a player</h3>
+      <p>Tap any player card to open the edit modal. Make your changes and tap Save, or tap Delete to remove the player from the roster.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Power ratings — how to assign them</h3>
+      <p>Power ratings are used by the auto-assign algorithm to balance shift strength. A rough guide:</p>
+      <ul>
+        <li><span class="power power-1">1</span> — still learning the basics; needs easier matchups or more rest</li>
+        <li><span class="power power-2">2</span> — solid contributor; holds their own in most positions</li>
+        <li><span class="power power-3">3</span> — one of your stronger players; can anchor a shift</li>
+      </ul>
+      <div class="callout tip">
+        <span class="callout-icon">&#128161;</span>
+        <div class="callout-body"><p>You don't need to be precise. The goal is rough balance across shifts — a mix of 1s, 2s, and 3s per shift is better than all your 3s in shift 1 and all your 1s in shift 6.</p></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 3. PRACTICE -->
+  <div class="section" id="practice">
+    <div class="section-header">
+      <span class="section-icon">&#128203;</span>
+      <h2>Practice Schedule</h2>
+    </div>
+
+    <div class="subsection">
+      <h3>Reading the weekly agenda</h3>
+      <p>The Practice tab shows weekly agenda cards — one per session. Each card lists the date, the overall strategy/objective for that session, and the drill assigned to each coach's station.</p>
+      <p>U7–U8 teams have three coach stations; U9–U12 teams have two.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Editing a week</h3>
+      <p>Tap the <strong>Edit</strong> button on any week card to update its date, strategy, and station drills. Coach names are fixed labels in the form — to adjust coach availability, see the planned Coach Availability feature.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Adding and removing weeks</h3>
+      <p>Use <strong>+ Add Week</strong> at the top of the Practice tab to create a new entry. Tap Edit on any week and use the Delete button (with confirmation) to remove it.</p>
+      <p>All changes persist automatically — no Save button needed after initial edit confirmation.</p>
+    </div>
+  </div>
+
+
+  <!-- 4. GAME DAY -->
+  <div class="section" id="game-day">
+    <div class="section-header">
+      <span class="section-icon">&#9917;</span>
+      <h2>Game Day</h2>
+    </div>
+
+    <div class="subsection">
+      <h3>Marking players absent</h3>
+      <p>At the top of the Game Day tab is the <strong>Absent</strong> panel — a row of chips, one per player. Tap a chip to mark that player absent (shown with strikethrough and red highlight). Absent players are excluded from auto-assign and appear faded in the statistics.</p>
+      <div class="callout warn">
+        <span class="callout-icon">&#9888;&#65039;</span>
+        <div class="callout-body"><p>Mark absences before running Auto-Assign. If you run auto-assign and then mark someone absent, you'll need to re-run it or manually adjust the affected shifts.</p></div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Running Auto-Assign</h3>
+      <p>Tap <strong>Auto-Assign</strong> to let SquadRotate fill all six shifts automatically. The algorithm balances:</p>
+      <ul>
+        <li>Power ratings — no shift should be stacked all 3s or all 1s</li>
+        <li>Position preferences — players go where they prefer when possible</li>
+        <li>Prior shift counts — players who've sat the bench more get prioritized for field time</li>
+        <li>Goalkeeper rotation — the GK role rotates among players who have it as a preference</li>
+      </ul>
+      <p>See <a href="#logic" style="color:var(--green)">Under the Hood</a> for the full scoring breakdown.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Manual adjustments</h3>
+      <p>Each player in a shift card has a position dropdown. Change it at any time — the shift card updates its validation state and the rotation matrix refreshes immediately.</p>
+      <p>The dropdown options are: <span class="chip chip-gk">GK</span> <span class="chip chip-def">DEF</span> <span class="chip chip-mid">MID</span> <span class="chip chip-str">STR</span> <span class="chip chip-bench">Bench</span></p>
+    </div>
+
+    <div class="subsection">
+      <h3>Shift validation — red and green outlines</h3>
+      <p>Once you start assigning players to a shift, SquadRotate checks that the formation is correct:</p>
+      <ul>
+        <li>1 goalkeeper</li>
+        <li>3 defenders</li>
+        <li>1 midfielder</li>
+        <li>2 strikers</li>
+        <li>7 players on the field (remaining players on bench)</li>
+      </ul>
+      <p>A <span class="chip chip-green">green outline</span> means the shift is valid. A <span class="chip chip-red">red outline</span> means something is off — and the error message tells you exactly what to fix (e.g. "2 goalkeepers assigned — only 1 is allowed. Move the extra to another position.").</p>
+      <p>Validation only fires once at least one role has been assigned on a shift. Empty shift cards stay neutral.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Traffic light quality indicator</h3>
+      <p>Each shift card header shows a small colored dot — this is the quality indicator for that shift's balance:</p>
+      <div class="tl-row"><div class="tl-dot tl-green"></div> <span>Good balance — power ratings are well distributed</span></div>
+      <div class="tl-row"><div class="tl-dot tl-yellow"></div> <span>Acceptable — slight imbalance, but workable</span></div>
+      <div class="tl-row"><div class="tl-dot tl-red"></div> <span>Imbalanced — consider swapping players between shifts</span></div>
+    </div>
+
+    <div class="subsection">
+      <h3>Game label</h3>
+      <p>The editable field in the header (next to the team name) lets you label the current game — e.g. "Apr 20 vs. Red FC". This is for your reference only; it doesn't affect any logic.</p>
+    </div>
+  </div>
+
+
+  <!-- 5. STATS -->
+  <div class="section" id="stats">
+    <div class="section-header">
+      <span class="section-icon">&#128202;</span>
+      <h2>Statistics &amp; Tracking</h2>
+    </div>
+
+    <div class="subsection">
+      <h3>Shift count tracker</h3>
+      <p>Below the shift cards, the stats table shows each player's total field shifts and goalkeeper appearances for the current game. The bar next to the shift count fills relative to the player with the most shifts — use it to spot anyone who has had significantly more or fewer turns than the rest.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Position rotation matrix</h3>
+      <p>Below the shift count tracker is the rotation matrix — a table showing how many times each player has played each position across all shifts in the current game.</p>
+
+      <table class="demo-table">
+        <thead>
+          <tr><th>Player</th><th>GK</th><th>DEF</th><th>MID</th><th>STR</th><th>BN</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Alex</td><td class="mc-0">–</td><td>2</td><td>1</td><td class="mc-mid">3</td><td class="mc-0">–</td></tr>
+          <tr><td>Jordan</td><td class="mc-high">5</td><td class="mc-0">–</td><td class="mc-0">–</td><td class="mc-0">–</td><td>1</td></tr>
+          <tr><td>Casey</td><td class="mc-0">–</td><td>1</td><td>2</td><td>2</td><td>1</td></tr>
+        </tbody>
+      </table>
+
+      <p>Cell highlighting:</p>
+      <ul>
+        <li><span class="mc-mid">Yellow</span> — player has been in this position 3 or more shifts; consider rotating them</li>
+        <li><span class="mc-high">Red</span> — player has been in this position nearly every shift; rotation is overdue</li>
+        <li><span class="mc-0">–</span> — zero appearances in this position this game</li>
+      </ul>
+      <p>The matrix updates live every time you change a role dropdown.</p>
+    </div>
+  </div>
+
+
+  <!-- 6. UNDER THE HOOD -->
+  <div class="section" id="logic">
+    <div class="section-header">
+      <span class="section-icon">&#9881;&#65039;</span>
+      <h2>Under the Hood — How the Logic Works</h2>
+    </div>
+
+    <div class="subsection">
+      <h3>Formation rules</h3>
+      <p>SquadRotate uses a fixed 3-1-2 formation for 7v7 play:</p>
+      <ul>
+        <li><span class="chip chip-gk">GK</span> — 1 goalkeeper</li>
+        <li><span class="chip chip-def">DEF</span> — 3 defenders</li>
+        <li><span class="chip chip-mid">MID</span> — 1 midfielder</li>
+        <li><span class="chip chip-str">STR</span> — 2 strikers</li>
+        <li><span class="chip chip-bench">Bench</span> — remaining players</li>
+      </ul>
+      <p>Total field players: 7. Any roster size above 7 will have players rotating through the bench each shift.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Auto-assign scoring formula</h3>
+      <p>When you tap Auto-Assign, the algorithm scores every possible player-to-position assignment and picks the combination that minimizes the total cost across all six shifts. The key factors in that score:</p>
+
+      <div class="formula">
+        <strong>Position preference match</strong> — large bonus if the player listed this position as a preference. Players always go where they want first when possible.<br><br>
+        <strong>Power balance</strong> — each shift's average power rating is compared to the team average. Assignments that keep all shifts near the mean are preferred over ones that pile strong players into one shift.<br><br>
+        <strong>Bench equity</strong> — players who have already sat the bench more times this game are deprioritized for bench assignments, so bench time spreads evenly.<br><br>
+        <strong>GK rotation</strong> — among players with GK as a preference, goalkeeper duty rotates so no one player is stuck in goal every shift.
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">&#8505;&#65039;</span>
+        <div class="callout-body"><p>Auto-assign produces a good starting point — not a perfect solution. You know your kids better than any algorithm does. Use manual adjustments freely after the initial auto-assign.</p></div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Traffic light scoring</h3>
+      <p>The quality dot on each shift header is based on the sum of power ratings for field players (non-bench) in that shift, compared to the ideal average across all shifts:</p>
+      <ul>
+        <li>Within ~10% of average → green</li>
+        <li>10–25% off → yellow</li>
+        <li>More than 25% off → red</li>
+      </ul>
+    </div>
+
+    <div class="subsection">
+      <h3>Validation thresholds</h3>
+      <p>Shift validation fires as soon as one or more players have been assigned a non-bench role. It checks exact counts against the 3-1-2 formation target and generates a specific corrective message for each violation found.</p>
+    </div>
+  </div>
+
+
+  <!-- 7. DATA & STORAGE -->
+  <div class="section" id="data">
+    <div class="section-header">
+      <span class="section-icon">&#128190;</span>
+      <h2>Your Data &amp; Storage</h2>
+    </div>
+
+    <div class="subsection">
+      <h3>Where your data lives</h3>
+      <p>Everything in SquadRotate — rosters, team names, practice schedules, game day assignments — is stored in your browser's <strong>localStorage</strong>. No account, no server, no syncing. The data lives on the device and browser you're using.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Switching devices</h3>
+      <p>If you open SquadRotate on a different phone or browser, you'll start with the default empty rosters. There is currently no export or sync feature — the app is designed for one coach, one device.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>Clearing data</h3>
+      <div class="callout warn">
+        <span class="callout-icon">&#9888;&#65039;</span>
+        <div class="callout-body"><p>Clearing your browser's site data or using "Clear browsing data" will erase all SquadRotate data permanently. There is no recovery option. If you need to wipe and start fresh, this is how to do it — but do it intentionally.</p></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  <p>SquadRotate &mdash; <a href="../">Open the app</a> &mdash; <a href="https://github.com/gizmo-snow/squadrotate" target="_blank" rel="noopener">GitHub</a></p>
+</footer>
+
+</body>
+</html>
