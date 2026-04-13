@@ -149,6 +149,24 @@
   .session-locked-banner { background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.3); border-radius: 8px; padding: 7px 12px; font-size: 0.78rem; color: var(--yellow); margin-bottom: 8px; display: none; }
   .session-locked-banner.visible { display: block; }
 
+  /* SWAP MODAL (#10) */
+  .swap-candidate { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 7px; background: var(--bg); margin-bottom: 6px; cursor: pointer; border: 1px solid transparent; transition: border-color 0.15s; }
+  .swap-candidate:hover { border-color: var(--green); }
+  .swap-candidate-info { font-size: 0.82rem; }
+  .swap-candidate-role { font-size: 0.72rem; color: var(--text2); }
+
+  /* CHALKBOARD (#13) */
+  .chalkboard { background: #166534; border-radius: 8px; padding: 8px 10px; margin: 6px 7px 0; display: flex; flex-direction: column; gap: 4px; }
+  .chalk-row { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+  .chalk-row-label { font-size: 0.58rem; text-align: center; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px; }
+  .chalk-chip { padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; color: #fff; white-space: nowrap; }
+  .chalk-gk   { background: rgba(168,85,247,0.7); }
+  .chalk-def  { background: rgba(59,130,246,0.7);  }
+  .chalk-mid  { background: rgba(245,158,11,0.7);  }
+  .chalk-str  { background: rgba(239,68,68,0.7);   }
+  .chalk-bench-row { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 5px; margin-top: 3px; }
+  .chalk-bench-chip { padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08); }
+
   /* FORMATION SELECTOR */
   .formation-panel { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); padding: 11px 13px; margin-bottom: 12px; }
   .formation-panel-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); margin-bottom: 9px; }
@@ -369,6 +387,18 @@
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="createSession()">Start Game</button>
       <button class="btn btn-secondary" onclick="closeNewGameModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SWAP MODAL (#10) -->
+<div class="modal-overlay" id="swapModal">
+  <div class="modal">
+    <h2 id="swapModalTitle">Suggest a Swap</h2>
+    <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;">Select a player to swap roles with, or dismiss to keep your change.</p>
+    <div id="swapCandidates"></div>
+    <div class="modal-actions" style="margin-top:10px;">
+      <button class="btn btn-secondary" onclick="closeSwapModal()">Keep Change</button>
     </div>
   </div>
 </div>
@@ -612,6 +642,50 @@ function renderAbsentChips() {
   }).join('');
 }
 
+// ─── CHALKBOARD VISUALIZATION (#13) ─────────────────────────────────────────
+function renderChalkboard(formation, shiftData, players) {
+  const byRole = { Goalkeeper:[], Defense:[], Midfield:[], Striker:[], Bench:[] };
+  players.forEach(p => {
+    const role = shiftData[p.id] || 'Bench';
+    byRole[role].push(p.name.split(' ')[0]);
+  });
+  const fieldOrder = [
+    { key:'Striker',    cls:'chalk-str',  label:'Strikers' },
+    { key:'Midfield',   cls:'chalk-mid',  label:'Midfield' },
+    { key:'Defense',    cls:'chalk-def',  label:'Defense'  },
+    { key:'Goalkeeper', cls:'chalk-gk',   label:'GK'       },
+  ];
+  const fieldRows = fieldOrder.map(({ key, cls, label }) => {
+    if (!byRole[key].length) return '';
+    return `<div>
+      <div class="chalk-row-label">${label}</div>
+      <div class="chalk-row">${byRole[key].map(n=>`<span class="chalk-chip ${cls}">${n}</span>`).join('')}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  const benchChips = byRole.Bench.length
+    ? `<div class="chalk-bench-row">${byRole.Bench.map(n=>`<span class="chalk-bench-chip">${n}</span>`).join('')}</div>`
+    : '';
+
+  return `<div class="chalkboard">${fieldRows}${benchChips}</div>`;
+}
+
+// ─── FATIGUE WARNINGS (#9) ───────────────────────────────────────────────────
+function computeFatigueWarnings(shifts) {
+  const attacking = new Set(['Striker','Midfield']);
+  const warnings  = new Set();
+  for (let s = 1; s < shifts.length; s++) {
+    const prev = shifts[s-1] || {};
+    const curr = shifts[s]   || {};
+    for (const [pid, role] of Object.entries(curr)) {
+      if (!attacking.has(role)) continue;
+      const prevRole = prev[pid];
+      if (prevRole && attacking.has(prevRole)) warnings.add(`${pid}_${s}`);
+    }
+  }
+  return warnings;
+}
+
 // Returns { off: [{name,role}], on: [{name,role}], moves: [{name,from,to}] }
 // comparing shiftA (prev) to shiftB (curr) for present players only
 function computeShiftDiff(sdA, sdB, players) {
@@ -643,6 +717,9 @@ function renderShifts() {
   const container = document.getElementById('shiftsContainer');
   container.innerHTML = '';
   const present = activePlayers();
+  const fatigueWarnings = computeFatigueWarnings(state.shifts);
+  const session = getActiveSession();
+  const locked  = session && session.locked;
 
   const nShifts = numShifts();
   // Ensure state.shifts has enough slots
@@ -697,6 +774,7 @@ function renderShifts() {
           <span style="color:var(--text2);font-size:0.68rem">${tLabel}</span>
         </div>
       </div>
+      ${renderChalkboard(getFormation(), sd, present)}
       <div class="shift-body" id="sb${s}"></div>
       ${errors.length ? `<div class="shift-errors">${errors.map(e=>`<div class="shift-error-item">${e}</div>`).join('')}</div>` : ''}
       <div class="shift-summary">
@@ -723,12 +801,14 @@ function renderShifts() {
 
     const body = document.getElementById(`sb${s}`);
     present.forEach(p => {
-      const role = sd[p.id] || 'Bench';
+      const role    = sd[p.id] || 'Bench';
+      const fatigue = fatigueWarnings.has(`${p.id}_${s}`);
       const row = document.createElement('div');
       row.className = 'player-row';
       row.innerHTML = `
         <span class="${role==='Bench'?'player-name benched':'player-name'}" title="${p.name}">${p.name.split(' ')[0]}</span>
-        <select class="role-select ${ROLE_CLASS[role]}" onchange="setRole(${s},${p.id},this.value)">
+        ${fatigue ? `<span title="Consecutive attacking shifts — consider rotating to defense" style="font-size:0.75rem;color:var(--yellow);flex-shrink:0">⚠</span>` : ''}
+        <select class="role-select ${ROLE_CLASS[role]}" onchange="setRole(${s},${p.id},this.value)" ${locked?'disabled':''}>
           ${ROLES.map(r=>`<option value="${r}"${r===role?' selected':''}>${ROLE_ABBR[r]}</option>`).join('')}
         </select>`;
       body.appendChild(row);
@@ -872,21 +952,43 @@ function renderPractice() {
   document.getElementById('weeklyAgenda').innerHTML = `
     <div class="practice-section" style="margin-top:0;margin-bottom:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:var(--surface2);">
-        <h3 style="padding:0;background:none;">Weekly Agenda — Formation: 3-1-2</h3>
+        <h3 style="padding:0;background:none;">Weekly Agenda</h3>
         <button class="btn btn-primary" style="padding:4px 10px;font-size:0.72rem;" onclick="openAddPracticeWeek()">+ Add Week</button>
       </div>
     </div>
-    ${agenda.map((w,i) => `
+    ${agenda.map((w,i) => {
+      const avail = w.coachAvailability || {};
+      return `
       <div class="week-card">
         <div class="week-header" style="display:flex;align-items:center;justify-content:space-between;">
           <span>${w.dates || 'TBD'}</span>
           <button class="btn btn-secondary" style="padding:3px 9px;font-size:0.68rem;" onclick="openEditPracticeWeek(${i})">Edit</button>
         </div>
         <div class="week-body">
+          <div class="week-row" style="margin-bottom:4px;">
+            <div class="label" style="margin-bottom:3px;">Coaches</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              ${w.stations.map(st => {
+                const present = avail[st.coach] !== false; // default present
+                return `<span onclick="toggleCoachAvail(${i},'${st.coach}')" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:600;
+                  background:${present?'rgba(34,197,94,0.15)':'rgba(239,68,68,0.12)'};
+                  color:${present?'var(--green)':'var(--red)'};
+                  border:1px solid ${present?'rgba(34,197,94,0.3)':'rgba(239,68,68,0.3)'};">
+                  ${present?'✓':'✗'} ${st.coach.split(' ')[0]}</span>`;
+              }).join('')}
+            </div>
+          </div>
           <div class="week-row"><div class="label">Strategy</div><div>${w.strategy}</div></div>
-          ${w.stations.map(st=>`<div class="week-row"><div class="label">${st.coach}</div><div>${st.drill||'—'}</div></div>`).join('')}
+          ${w.stations.map(st => {
+            const coachPresent = avail[st.coach] !== false;
+            return `<div class="week-row" style="${coachPresent?'':'opacity:0.4'}">
+              <div class="label">${st.coach.split(' ')[0]}</div>
+              <div>${coachPresent ? (st.drill||'—') : '<em style="color:var(--text2)">Unavailable</em>'}</div>
+            </div>`;
+          }).join('')}
         </div>
-      </div>`).join('')}`;
+      </div>`;
+    }).join('')}`;
 }
 
 // ─── PRACTICE CRUD ───────────────────────────────────────────────────────────
@@ -963,6 +1065,18 @@ document.getElementById('practiceModal').addEventListener('click', function(e) {
   if (e.target === this) closePracticeModal();
 });
 
+// ─── COACH AVAILABILITY (#11) ────────────────────────────────────────────────
+function toggleCoachAvail(weekIdx, coachName) {
+  const week = state.weeklyAgenda[weekIdx];
+  if (!week) return;
+  if (!week.coachAvailability) week.coachAvailability = {};
+  const current = week.coachAvailability[coachName] !== false; // default true
+  week.coachAvailability[coachName] = !current;
+  saveTeamState(currentTeam, state);
+  renderPractice();
+  showToast(`${coachName.split(' ')[0]} marked ${!current ? 'present' : 'unavailable'}`);
+}
+
 // ─── ACTIONS ─────────────────────────────────────────────────────────────────
 function toggleAbsent(id) {
   const i = state.absent.indexOf(id);
@@ -974,6 +1088,7 @@ function toggleAbsent(id) {
 function setRole(shiftIdx, playerId, role) {
   const session = getActiveSession();
   if (session && session.locked) { showToast('Game is locked — unlock to make changes'); return; }
+  const oldRole = (state.shifts[shiftIdx] && state.shifts[shiftIdx][playerId]) || 'Bench';
   if (!state.shifts[shiftIdx]) state.shifts[shiftIdx] = {};
   state.shifts[shiftIdx][playerId] = role;
   saveTeamState(currentTeam, state);
@@ -981,6 +1096,10 @@ function setRole(shiftIdx, playerId, role) {
   renderShifts();
   renderStats();
   renderMatrix();
+  // Suggest swap if a manual change was made (not bench → bench)
+  if (oldRole !== role && role !== 'Bench') {
+    openSwapModal(shiftIdx, playerId, role, oldRole);
+  }
 }
 
 function clearAllShifts() {
@@ -1265,6 +1384,66 @@ function renderSessionBar() {
   banner.classList.toggle('visible', !!locked);
 }
 
+// ─── SWAP MODAL (#10) ────────────────────────────────────────────────────────
+let pendingSwap = null; // { shiftIdx, playerId, newRole, oldRole }
+
+function openSwapModal(shiftIdx, playerId, newRole, oldRole) {
+  const session = getActiveSession();
+  if (session && session.locked) return;
+  const sd       = state.shifts[shiftIdx] || {};
+  const present  = activePlayers();
+  const mover    = present.find(p => p.id === playerId);
+  if (!mover) return;
+
+  pendingSwap = { shiftIdx, playerId, newRole, oldRole };
+
+  document.getElementById('swapModalTitle').textContent = `Swap with ${mover.name.split(' ')[0]}?`;
+
+  // Rank candidates: field players in this shift who could swap into oldRole
+  const candidates = present
+    .filter(p => p.id !== playerId)
+    .map(p => {
+      const currentRole = sd[p.id] || 'Bench';
+      let score = 0;
+      if (p.positions && p.positions.includes(oldRole)) score += 10;
+      if (currentRole !== 'Bench') score += 2; // prefer field players for a swap
+      return { player: p, currentRole, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  document.getElementById('swapCandidates').innerHTML = candidates.length
+    ? candidates.map(c => `
+        <div class="swap-candidate" onclick="executeSwap(${shiftIdx},${playerId},'${newRole}',${c.player.id},'${c.currentRole}')">
+          <div>
+            <div class="swap-candidate-info">${c.player.name.split(' ')[0]}</div>
+            <div class="swap-candidate-role">Currently: ${ROLE_ABBR[c.currentRole] || c.currentRole} → would move to ${ROLE_ABBR[oldRole] || oldRole}</div>
+          </div>
+          <span style="color:var(--green);font-size:1rem">⇄</span>
+        </div>`).join('')
+    : '<p style="font-size:0.8rem;color:var(--text2);">No swap candidates available.</p>';
+
+  document.getElementById('swapModal').classList.add('open');
+}
+
+function closeSwapModal() {
+  document.getElementById('swapModal').classList.remove('open');
+  pendingSwap = null;
+}
+
+function executeSwap(shiftIdx, playerA, roleA, playerB, roleB) {
+  if (!state.shifts[shiftIdx]) state.shifts[shiftIdx] = {};
+  state.shifts[shiftIdx][playerA] = roleA;
+  state.shifts[shiftIdx][playerB] = roleB;
+  saveTeamState(currentTeam, state);
+  saveCurrentSessionShifts();
+  closeSwapModal();
+  renderShifts();
+  renderStats();
+  renderMatrix();
+  showToast('Swap applied');
+}
+
 // ─── ROSTER MODAL ────────────────────────────────────────────────────────────
 let editingPlayerId = null;
 
@@ -1358,6 +1537,9 @@ document.getElementById('addPlayerModal').addEventListener('click', function(e) 
 });
 document.getElementById('newGameModal').addEventListener('click', function(e) {
   if (e.target === this) closeNewGameModal();
+});
+document.getElementById('swapModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSwapModal();
 });
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
