@@ -31,6 +31,8 @@
   header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 14px; position: sticky; top: 0; z-index: 100; }
   .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .logo { font-size: 1.15rem; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
+  .help-link { font-size: 0.72rem; color: var(--text2); text-decoration: none; padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface2); white-space: nowrap; transition: all 0.15s; }
+  .help-link:hover { color: var(--green); border-color: var(--green); }
   .game-info input { background: transparent; border: none; border-bottom: 1px dashed var(--border); color: var(--text2); font-size: 0.75rem; width: 140px; text-align: right; outline: none; }
 
   /* TEAM SWITCHER */
@@ -189,7 +191,10 @@
 <header>
   <div class="header-top">
     <div class="logo">⚽ SquadRotate</div>
-    <div class="game-info"><input type="text" id="gameLabel" placeholder="vs. Opponent · Date" maxlength="30"></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <a class="help-link" href="help/" title="How to use SquadRotate">? Help</a>
+      <div class="game-info"><input type="text" id="gameLabel" placeholder="vs. Opponent · Date" maxlength="30"></div>
+    </div>
   </div>
   <div class="team-switcher">
     <button class="team-btn" id="btnU78"  onclick="switchTeam('u78')">U7–U8 Navy Blue</button>
