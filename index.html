@@ -382,7 +382,26 @@ const ROLE_ABBR  = { Goalkeeper:'GK', Defense:'DEF', Midfield:'MID', Striker:'ST
 const ROLE_CLASS = { Goalkeeper:'role-gk', Defense:'role-def', Midfield:'role-mid', Striker:'role-str', Bench:'role-bench' };
 const POS_CLASS  = { Goalkeeper:'pos-gk', Defense:'pos-def', Midfield:'pos-mid', Striker:'pos-str' };
 const FORMATION_DEFAULT = { Goalkeeper:1, Defense:3, Midfield:1, Striker:2 }; // 3-1-2 / 7v7
-const NUM_SHIFTS = 6;
+const NUM_SHIFTS = 6; // legacy fallback only
+
+function getNumShifts(session) {
+  if (!session) return 6;
+  const n = Math.floor(session.halfLength / session.minsPerShift);
+  return Math.max(1, n);
+}
+
+function getShiftRemainder(session) {
+  if (!session) return 0;
+  return session.halfLength % session.minsPerShift;
+}
+
+function numShifts() {
+  return getNumShifts(getActiveSession());
+}
+
+function makeEmptyShifts(n) {
+  return Array.from({ length: n || numShifts() }, () => ({}));
+}
 
 function getFormation() {
   return (state && state.formation) ? state.formation : { ...FORMATION_DEFAULT };
@@ -523,7 +542,7 @@ function getTeamState(teamKey) {
   } catch(e) {}
   return {
     players: JSON.parse(JSON.stringify(def.defaultPlayers)),
-    shifts: Array.from({length: NUM_SHIFTS}, () => ({})),
+    shifts: makeEmptyShifts(),
     absent: [],
     gameLabel: '',
     teamName: def.label,
@@ -625,7 +644,10 @@ function renderShifts() {
   container.innerHTML = '';
   const present = activePlayers();
 
-  for (let s = 0; s < NUM_SHIFTS; s++) {
+  const nShifts = numShifts();
+  // Ensure state.shifts has enough slots
+  while (state.shifts.length < nShifts) state.shifts.push({});
+  for (let s = 0; s < nShifts; s++) {
     const sd = state.shifts[s] || {};
 
     // Shift score & traffic
@@ -738,11 +760,12 @@ function renderStats() {
     <thead><tr><th>Player</th><th>Shifts</th><th>GK</th></tr></thead>
     <tbody>${rows.map(({p, played, goalie}) => {
       const absent = state.absent.includes(p.id);
-      const pct = played / NUM_SHIFTS;
+      const totalShifts = numShifts();
+      const pct = played / totalShifts;
       const bClass = pct > 0.85 ? 'over' : pct > 0.5 ? '' : 'warn';
       return `<tr style="${absent?'opacity:0.35':''}">
         <td>${p.name.split(' ')[0]} <span style="font-size:0.62rem;color:var(--text2)">${p.kit?'#'+p.kit:''}</span></td>
-        <td>${played}/${NUM_SHIFTS} <span class="bar-bg"><span class="bar-fill ${bClass}" style="width:${Math.round(pct*100)}%"></span></span></td>
+        <td>${played}/${totalShifts} <span class="bar-bg"><span class="bar-fill ${bClass}" style="width:${Math.round(pct*100)}%"></span></span></td>
         <td>${goalie>1?`<span class="tag tag-warn">${goalie}x</span>`:goalie===1?`<span class="tag tag-gk">1x</span>`:'–'}</td>
       </tr>`;
     }).join('')}</tbody>`;
@@ -964,7 +987,7 @@ function clearAllShifts() {
   const session = getActiveSession();
   if (session && session.locked) { showToast('Game is locked — unlock to make changes'); return; }
   if (!confirm('Clear all shift assignments?')) return;
-  state.shifts = Array.from({length: NUM_SHIFTS}, () => ({}));
+  state.shifts = makeEmptyShifts();
   saveTeamState(currentTeam, state);
   saveCurrentSessionShifts();
   renderAll();
@@ -977,8 +1000,10 @@ function autoAssign() {
 
   const goalieCount = {};
   present.forEach(p => goalieCount[p.id] = 0);
+  const nShifts = numShifts();
+  state.shifts = makeEmptyShifts(nShifts);
 
-  for (let s = 0; s < NUM_SHIFTS; s++) {
+  for (let s = 0; s < nShifts; s++) {
     const assigned = {};
     const pool = [...present];
     const quota = {...getFormation()};
@@ -1116,11 +1141,11 @@ function loadSessionShifts(sessionId) {
   const store = getShiftsStore(currentTeam);
   const data  = store[sessionId];
   if (data) {
-    state.shifts    = data.shifts    || Array.from({length: NUM_SHIFTS}, () => ({}));
+    state.shifts    = data.shifts    || makeEmptyShifts();
     state.absent    = data.absent    || [];
     state.gameLabel = data.gameLabel || '';
   } else {
-    state.shifts    = Array.from({length: NUM_SHIFTS}, () => ({}));
+    state.shifts    = makeEmptyShifts();
     state.absent    = [];
     state.gameLabel = '';
   }
@@ -1185,7 +1210,7 @@ function createSession() {
   saveSessionsStore(currentTeam, sessStore);
 
   // Fresh shifts for new session
-  state.shifts    = Array.from({length: NUM_SHIFTS}, () => ({}));
+  state.shifts    = makeEmptyShifts();
   state.absent    = [];
   state.gameLabel = label;
   saveTeamState(currentTeam, state);
@@ -1223,11 +1248,17 @@ function renderSessionBar() {
   const sessions = sessStore.sessions;
   const active   = getActiveSession();
   const locked   = active && active.locked;
+  const nSh = active ? getNumShifts(active) : 6;
+  const rem = active ? getShiftRemainder(active) : 0;
+  const shiftInfo = active
+    ? `<span style="font-size:0.7rem;color:var(--text2);white-space:nowrap">${nSh} shifts${rem > 0 ? ` +${rem}m` : ''}</span>`
+    : '';
 
   bar.innerHTML = `
     <select class="session-select" onchange="switchSession(this.value)">
       ${sessions.map(s => `<option value="${s.id}" ${s.id === sessStore.activeSessionId ? 'selected' : ''}>${s.locked?'🔒 ':''}${s.label}</option>`).join('')}
     </select>
+    ${shiftInfo}
     <button class="btn btn-secondary" style="font-size:0.75rem;padding:5px 10px" onclick="openNewGameModal()">+ New</button>
     <button class="session-lock-btn ${locked?'locked':''}" onclick="toggleSessionLock()">${locked?'🔒 Unlock':'🔓 Lock'}</button>`;
 
