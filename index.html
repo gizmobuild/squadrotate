@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>SquadRotate</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230f172a' stroke='%2322c55e' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='5.5' fill='%23f1f5f9'/%3E%3Cpolygon points='16,10.5 17.6,15.2 22.5,15.2 18.5,18.1 20.1,22.8 16,19.9 11.9,22.8 13.5,18.1 9.5,15.2 14.4,15.2' fill='%230f172a'/%3E%3C/svg%3E">
 <style>
   :root {
     --green: #22c55e;
@@ -594,10 +595,13 @@ let state = getTeamState(currentTeam);
 
 // ─── TEAM SWITCHING ──────────────────────────────────────────────────────────
 function switchTeam(teamKey) {
+  saveCurrentSessionShifts();          // persist shifts for the team we're leaving
   saveTeamState(currentTeam, state);
   currentTeam = teamKey;
   localStorage.setItem('squadrotate_activeTeam', teamKey);
   state = getTeamState(teamKey);
+  const activeSess = getActiveSession(); // reads new team's store
+  if (activeSess) loadSessionShifts(activeSess.id);
   updateTeamUI();
   renderAll();
 }
@@ -1085,6 +1089,7 @@ function toggleAbsent(id) {
   const i = state.absent.indexOf(id);
   if (i >= 0) state.absent.splice(i,1); else state.absent.push(id);
   saveTeamState(currentTeam, state);
+  saveCurrentSessionShifts();
   renderAll();
 }
 
@@ -1505,6 +1510,7 @@ function deletePlayer() {
   state.absent  = state.absent.filter(id => id !== editingPlayerId);
   state.shifts.forEach(s => delete s[editingPlayerId]);
   saveTeamState(currentTeam, state);
+  saveCurrentSessionShifts();
   closeModal();
   renderAll();
   showToast('Player removed');
@@ -1556,6 +1562,9 @@ ensureSessionsExist('u912');
 });
 
 updateTeamUI();
+// Load the active session's shifts on startup (avoids showing stale main-key data)
+const _initSess = getActiveSession();
+if (_initSess) loadSessionShifts(_initSess.id);
 renderAll();
 </script>
 </body>
