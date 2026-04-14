@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>SquadRotate</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230f172a' stroke='%2322c55e' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='5.5' fill='%23f1f5f9'/%3E%3Cpolygon points='16,10.5 17.6,15.2 22.5,15.2 18.5,18.1 20.1,22.8 16,19.9 11.9,22.8 13.5,18.1 9.5,15.2 14.4,15.2' fill='%230f172a'/%3E%3C/svg%3E">
 <style>
   :root {
     --green: #22c55e;
@@ -416,8 +417,9 @@ const NUM_SHIFTS = 6; // legacy fallback only
 
 function getNumShifts(session) {
   if (!session) return 6;
-  const n = Math.floor(session.halfLength / session.minsPerShift);
-  return Math.max(1, n);
+  const perHalf = Math.floor(session.halfLength / session.minsPerShift);
+  const bonus   = (session.halfLength % session.minsPerShift) > 5 ? 1 : 0;
+  return Math.max(2, (perHalf + bonus) * 2); // × 2 for both halves
 }
 
 function getShiftRemainder(session) {
@@ -593,10 +595,13 @@ let state = getTeamState(currentTeam);
 
 // ─── TEAM SWITCHING ──────────────────────────────────────────────────────────
 function switchTeam(teamKey) {
+  saveCurrentSessionShifts();          // persist shifts for the team we're leaving
   saveTeamState(currentTeam, state);
   currentTeam = teamKey;
   localStorage.setItem('squadrotate_activeTeam', teamKey);
   state = getTeamState(teamKey);
+  const activeSess = getActiveSession(); // reads new team's store
+  if (activeSess) loadSessionShifts(activeSess.id);
   updateTeamUI();
   renderAll();
 }
@@ -1084,6 +1089,7 @@ function toggleAbsent(id) {
   const i = state.absent.indexOf(id);
   if (i >= 0) state.absent.splice(i,1); else state.absent.push(id);
   saveTeamState(currentTeam, state);
+  saveCurrentSessionShifts();
   renderAll();
 }
 
@@ -1303,12 +1309,13 @@ function closeNewGameModal() {
 function updateNewGamePreview() {
   const half = parseInt(document.getElementById('ngHalf').value, 10) || 0;
   const mins = parseInt(document.getElementById('ngMins').value,  10) || 1;
-  const shifts = Math.max(1, Math.floor(half / mins));
-  const rem    = half % mins;
+  if (!half || !mins) { document.getElementById('ngPreview').textContent = ''; return; }
+  const perHalf = Math.floor(half / mins);
+  const rem     = half % mins;
+  const bonus   = rem > 5 ? 1 : 0;
+  const total   = Math.max(2, (perHalf + bonus) * 2);
   const el = document.getElementById('ngPreview');
-  el.textContent = shifts > 0
-    ? `${shifts} shifts per half × 2 = ${shifts*2} total${rem > 0 ? ` (${rem} min remaining)` : ''}`
-    : '';
+  el.textContent = `${perHalf}${bonus ? '+1' : ''} shifts/half × 2 = ${total} shifts total${rem > 0 ? ` (${rem} min left over)` : ''}`;
 }
 
 function createSession() {
@@ -1370,9 +1377,8 @@ function renderSessionBar() {
   const active   = getActiveSession();
   const locked   = active && active.locked;
   const nSh = active ? getNumShifts(active) : 6;
-  const rem = active ? getShiftRemainder(active) : 0;
   const shiftInfo = active
-    ? `<span style="font-size:0.7rem;color:var(--text2);white-space:nowrap">${nSh} shifts${rem > 0 ? ` +${rem}m` : ''}</span>`
+    ? `<span style="font-size:0.7rem;color:var(--text2);white-space:nowrap">${nSh} shifts</span>`
     : '';
 
   bar.innerHTML = `
@@ -1504,6 +1510,7 @@ function deletePlayer() {
   state.absent  = state.absent.filter(id => id !== editingPlayerId);
   state.shifts.forEach(s => delete s[editingPlayerId]);
   saveTeamState(currentTeam, state);
+  saveCurrentSessionShifts();
   closeModal();
   renderAll();
   showToast('Player removed');
@@ -1555,6 +1562,9 @@ ensureSessionsExist('u912');
 });
 
 updateTeamUI();
+// Load the active session's shifts on startup (avoids showing stale main-key data)
+const _initSess = getActiveSession();
+if (_initSess) loadSessionShifts(_initSess.id);
 renderAll();
 </script>
 </body>
