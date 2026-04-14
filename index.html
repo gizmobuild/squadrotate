@@ -416,8 +416,9 @@ const NUM_SHIFTS = 6; // legacy fallback only
 
 function getNumShifts(session) {
   if (!session) return 6;
-  const n = Math.floor(session.halfLength / session.minsPerShift);
-  return Math.max(1, n);
+  const perHalf = Math.floor(session.halfLength / session.minsPerShift);
+  const bonus   = (session.halfLength % session.minsPerShift) > 5 ? 1 : 0;
+  return Math.max(2, (perHalf + bonus) * 2); // × 2 for both halves
 }
 
 function getShiftRemainder(session) {
@@ -1303,12 +1304,13 @@ function closeNewGameModal() {
 function updateNewGamePreview() {
   const half = parseInt(document.getElementById('ngHalf').value, 10) || 0;
   const mins = parseInt(document.getElementById('ngMins').value,  10) || 1;
-  const shifts = Math.max(1, Math.floor(half / mins));
-  const rem    = half % mins;
+  if (!half || !mins) { document.getElementById('ngPreview').textContent = ''; return; }
+  const perHalf = Math.floor(half / mins);
+  const rem     = half % mins;
+  const bonus   = rem > 5 ? 1 : 0;
+  const total   = Math.max(2, (perHalf + bonus) * 2);
   const el = document.getElementById('ngPreview');
-  el.textContent = shifts > 0
-    ? `${shifts} shifts per half × 2 = ${shifts*2} total${rem > 0 ? ` (${rem} min remaining)` : ''}`
-    : '';
+  el.textContent = `${perHalf}${bonus ? '+1' : ''} shifts/half × 2 = ${total} shifts total${rem > 0 ? ` (${rem} min left over)` : ''}`;
 }
 
 function createSession() {
@@ -1370,9 +1372,8 @@ function renderSessionBar() {
   const active   = getActiveSession();
   const locked   = active && active.locked;
   const nSh = active ? getNumShifts(active) : 6;
-  const rem = active ? getShiftRemainder(active) : 0;
   const shiftInfo = active
-    ? `<span style="font-size:0.7rem;color:var(--text2);white-space:nowrap">${nSh} shifts${rem > 0 ? ` +${rem}m` : ''}</span>`
+    ? `<span style="font-size:0.7rem;color:var(--text2);white-space:nowrap">${nSh} shifts</span>`
     : '';
 
   bar.innerHTML = `
