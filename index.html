@@ -34,7 +34,10 @@
   .logo { font-size: 1.15rem; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
   .help-link { font-size: 0.72rem; color: var(--text2); text-decoration: none; padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface2); white-space: nowrap; transition: all 0.15s; }
   .help-link:hover { color: var(--green); border-color: var(--green); }
-  .game-info input { background: transparent; border: none; border-bottom: 1px dashed var(--border); color: var(--text2); font-size: 0.75rem; width: 140px; text-align: right; outline: none; }
+  .session-label { font-size: 0.75rem; color: var(--text2); text-align: right; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .session-label.has-session { color: var(--text); }
+  .session-label.is-locked { color: var(--yellow); }
+  .export-btn { padding: 6px 11px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid var(--green); background: rgba(34,197,94,0.1); color: var(--green); white-space: nowrap; }
 
   /* TEAM SWITCHER */
   .team-switcher { display: flex; gap: 6px; }
@@ -245,7 +248,7 @@
     <div class="logo">⚽ SquadRotate</div>
     <div style="display:flex;align-items:center;gap:8px;">
       <a class="help-link" href="help/" title="How to use SquadRotate">? Help</a>
-      <div class="game-info"><input type="text" id="gameLabel" placeholder="vs. Opponent · Date" maxlength="30"></div>
+      <span class="session-label" id="sessionLabel">vs. Opponent · Date</span>
     </div>
   </div>
   <div class="team-switcher">
@@ -613,7 +616,7 @@ function updateTeamUI() {
   document.getElementById('btnU912').textContent = u912Name;
   document.getElementById('btnU78').className  = 'team-btn' + (currentTeam === 'u78'  ? ' active-u78'  : '');
   document.getElementById('btnU912').className = 'team-btn' + (currentTeam === 'u912' ? ' active-u912' : '');
-  document.getElementById('gameLabel').value = state.gameLabel || '';
+  updateSessionLabel();
   const nameInput = document.getElementById('teamNameInput');
   if (nameInput) nameInput.value = state.teamName || TEAMS[currentTeam].label;
 }
@@ -1364,10 +1367,27 @@ function toggleSessionLock() {
   showToast(session.locked ? 'Game locked 🔒' : 'Game unlocked');
 }
 
+function updateSessionLabel() {
+  const session = getActiveSession();
+  const el = document.getElementById('sessionLabel');
+  if (!el) return;
+  if (!session) {
+    el.textContent = 'vs. Opponent · Date';
+    el.className = 'session-label';
+    return;
+  }
+  const d = session.date ? new Date(session.date + 'T12:00:00') : null;
+  const dateStr = d ? d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+  const oppStr  = session.opponent ? `vs. ${session.opponent}` : 'Game';
+  el.textContent = (session.locked ? '🔒 ' : '') + oppStr + (dateStr ? ` · ${dateStr}` : '');
+  el.className = 'session-label has-session' + (session.locked ? ' is-locked' : '');
+}
+
 function renderSessionBar() {
   const sessStore = getSessionsStore(currentTeam);
   const bar = document.getElementById('sessionBar');
   const banner = document.getElementById('lockedBanner');
+  updateSessionLabel();
   if (!sessStore || !sessStore.sessions.length) {
     bar.innerHTML = `<button class="btn btn-primary" style="font-size:0.78rem" onclick="openNewGameModal()">+ New Game</button>`;
     banner.classList.remove('visible');
@@ -1377,9 +1397,7 @@ function renderSessionBar() {
   const active   = getActiveSession();
   const locked   = active && active.locked;
   const nSh = active ? getNumShifts(active) : 6;
-  const shiftInfo = active
-    ? `<span style="font-size:0.7rem;color:var(--text2);white-space:nowrap">${nSh} shifts</span>`
-    : '';
+  const shiftInfo = `<span style="font-size:0.7rem;color:var(--text2);white-space:nowrap">${nSh} shifts</span>`;
 
   bar.innerHTML = `
     <select class="session-select" onchange="switchSession(this.value)">
@@ -1387,9 +1405,45 @@ function renderSessionBar() {
     </select>
     ${shiftInfo}
     <button class="btn btn-secondary" style="font-size:0.75rem;padding:5px 10px" onclick="openNewGameModal()">+ New</button>
-    <button class="session-lock-btn ${locked?'locked':''}" onclick="toggleSessionLock()">${locked?'🔒 Unlock':'🔓 Lock'}</button>`;
+    <button class="session-lock-btn ${locked?'locked':''}" onclick="toggleSessionLock()">${locked?'🔒 Unlock':'🔓 Lock'}</button>
+    ${locked ? `<button class="export-btn" onclick="exportLineup()">⬆ Export</button>` : ''}`;
 
   banner.classList.toggle('visible', !!locked);
+}
+
+function exportLineup() {
+  const session = getActiveSession();
+  if (!session || !session.locked) return;
+  const teamName = state.teamName || TEAMS[currentTeam].label;
+  const d = session.date ? new Date(session.date + 'T12:00:00') : null;
+  const dateStr = d ? d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+  const oppStr  = session.opponent ? `vs. ${session.opponent}` : 'Game';
+  const nShifts = getNumShifts(session);
+  const lines   = [`⚽ SquadRotate — ${teamName}`, `${oppStr}${dateStr ? ` · ${dateStr}` : ''}`, ''];
+  const present = state.players.filter(p => !state.absent.includes(p.id));
+  for (let s = 0; s < nShifts; s++) {
+    const sd = state.shifts[s] || {};
+    const byRole = {Goalkeeper:[], Defense:[], Midfield:[], Striker:[], Bench:[]};
+    present.forEach(p => byRole[sd[p.id] || 'Bench'].push(p.name.split(' ')[0]));
+    lines.push(`Shift ${s + 1}`);
+    lines.push(`  GK:  ${byRole.Goalkeeper.join(', ') || '—'}`);
+    lines.push(`  DEF: ${byRole.Defense.join(', ')    || '—'}`);
+    lines.push(`  MID: ${byRole.Midfield.join(', ')   || '—'}`);
+    lines.push(`  STR: ${byRole.Striker.join(', ')    || '—'}`);
+    if (byRole.Bench.length) lines.push(`  BN:  ${byRole.Bench.join(', ')}`);
+    lines.push('');
+  }
+  if (state.absent.length) {
+    const names = state.players.filter(p => state.absent.includes(p.id)).map(p => p.name.split(' ')[0]);
+    lines.push(`Not available: ${names.join(', ')}`);
+  }
+  const text  = lines.join('\n');
+  const title = `${teamName} Lineup${session.opponent ? ` vs. ${session.opponent}` : ''}`;
+  if (navigator.share) {
+    navigator.share({ title, text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => showToast('Lineup copied to clipboard'));
+  }
 }
 
 // ─── SWAP MODAL (#10) ────────────────────────────────────────────────────────
@@ -1536,10 +1590,6 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-document.getElementById('gameLabel').addEventListener('input', e => {
-  state.gameLabel = e.target.value;
-  saveTeamState(currentTeam, state);
-});
 
 document.getElementById('addPlayerModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
