@@ -288,18 +288,7 @@
 
 <!-- PRACTICE VIEW -->
 <div id="view-practice" class="view">
-  <div class="practice-section">
-    <h3>Daily Practice Routine</h3>
-    <table class="practice-table">
-      <thead><tr><th>Time</th><th>Activity</th><th>Focus</th></tr></thead>
-      <tbody>
-        <tr><td>00–10m</td><td>Warm-up &amp; Footwork</td><td>Dynamic running + Training ladder for agility.</td></tr>
-        <tr><td>10–20m</td><td>Strategy Session</td><td>Magnet board talk: Position names and daily goal.</td></tr>
-        <tr><td>20–50m</td><td>Technical Drills</td><td>Small group rotations (Coaches lead specific stations).</td></tr>
-        <tr><td>50–90m</td><td>Game Play</td><td>Scrimmage with "Freeze-Frame" coaching moments.</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <div id="dailyRoutine"></div>
   <div id="weeklyAgenda"></div>
 </div>
 
@@ -363,6 +352,21 @@
   </div>
 </div>
 
+<!-- DAILY ROUTINE EDIT MODAL (#27) -->
+<div class="modal-overlay" id="routineModal">
+  <div class="modal">
+    <h2 id="routineModalTitle">Edit Routine Row</h2>
+    <div class="field-group"><label>Time Block</label><input type="text" id="rrTime" placeholder="e.g. 00–10m" maxlength="20"></div>
+    <div class="field-group"><label>Activity</label><input type="text" id="rrActivity" placeholder="e.g. Warm-up" maxlength="60"></div>
+    <div class="field-group"><label>Focus / Notes</label><textarea id="rrFocus" rows="3" style="width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;resize:vertical;font-family:inherit;"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveRoutineRow()">Save</button>
+      <button class="btn btn-secondary" onclick="closeRoutineModal()">Cancel</button>
+      <button class="btn btn-danger" id="routineDeleteBtn" style="display:none;margin-left:auto" onclick="deleteRoutineRow()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- PRACTICE EDIT MODAL -->
 <div class="modal-overlay" id="practiceModal">
   <div class="modal" style="max-width:420px;max-height:90vh;overflow-y:auto;">
@@ -415,6 +419,12 @@ const ROLE_ABBR  = { Goalkeeper:'GK', Defense:'DEF', Midfield:'MID', Striker:'ST
 const ROLE_CLASS = { Goalkeeper:'role-gk', Defense:'role-def', Midfield:'role-mid', Striker:'role-str', Bench:'role-bench' };
 const POS_CLASS  = { Goalkeeper:'pos-gk', Defense:'pos-def', Midfield:'pos-mid', Striker:'pos-str' };
 const FORMATION_DEFAULT = { Goalkeeper:1, Defense:3, Midfield:1, Striker:2 }; // 3-1-2 / 7v7
+const DEFAULT_DAILY_ROUTINE = [
+  { time:'00–10m', activity:'Warm-up & Footwork',  focus:'Dynamic running + Training ladder for agility.' },
+  { time:'10–20m', activity:'Strategy Session',    focus:'Magnet board talk: Position names and daily goal.' },
+  { time:'20–50m', activity:'Technical Drills',    focus:'Small group rotations (Coaches lead specific stations).' },
+  { time:'50–90m', activity:'Game Play',           focus:'Scrimmage with "Freeze-Frame" coaching moments.' },
+];
 const NUM_SHIFTS = 6; // legacy fallback only
 
 function getNumShifts(session) {
@@ -578,6 +588,8 @@ function getTeamState(teamKey) {
       if (!Array.isArray(parsed.shifts))  parsed.shifts  = [];
       if (!Array.isArray(parsed.absent))  parsed.absent  = [];
       parsed.players.forEach(p => { if (!Array.isArray(p.positions)) p.positions = []; });
+      // Migrate: add dailyRoutine if missing (#27)
+      if (!parsed.dailyRoutine) parsed.dailyRoutine = JSON.parse(JSON.stringify(DEFAULT_DAILY_ROUTINE));
       return parsed;
     }
   } catch(e) {}
@@ -591,6 +603,7 @@ function getTeamState(teamKey) {
     nextId: def.defaultPlayers.length + 1,
     formation: { ...FORMATION_DEFAULT },
     teamSize: 7,
+    dailyRoutine: JSON.parse(JSON.stringify(DEFAULT_DAILY_ROUTINE)),
   };
 }
 
@@ -971,7 +984,32 @@ function renderMatrix() {
     </tbody>`;
 }
 
+function renderDailyRoutine() {
+  const rows = state.dailyRoutine || DEFAULT_DAILY_ROUTINE;
+  document.getElementById('dailyRoutine').innerHTML = `
+    <div class="practice-section" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:var(--surface2);">
+        <h3 style="padding:0;background:none;">Daily Practice Routine</h3>
+        <button class="btn btn-primary" style="padding:4px 10px;font-size:0.72rem;" onclick="openAddRoutineRow()">+ Add</button>
+      </div>
+      <table class="practice-table">
+        <thead><tr><th>Time</th><th>Activity</th><th>Focus</th><th></th></tr></thead>
+        <tbody>${rows.map((r,i) => `
+          <tr>
+            <td>${r.time}</td>
+            <td>${r.activity}</td>
+            <td>${r.focus}</td>
+            <td style="text-align:right;padding-right:8px;">
+              <button class="btn btn-secondary" style="padding:2px 7px;font-size:0.65rem;" onclick="openEditRoutineRow(${i})">Edit</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 function renderPractice() {
+  renderDailyRoutine();
   const agenda = state.weeklyAgenda || [];
   document.getElementById('weeklyAgenda').innerHTML = `
     <div class="practice-section" style="margin-top:0;margin-bottom:10px;">
@@ -993,12 +1031,12 @@ function renderPractice() {
             <div class="label" style="margin-bottom:3px;">Coaches</div>
             <div style="display:flex;flex-wrap:wrap;gap:5px;">
               ${w.stations.map(st => {
-                const present = avail[st.coach] !== false; // default present
+                const present = avail[st.coach] !== false;
                 return `<span onclick="toggleCoachAvail(${i},'${st.coach}')" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:600;
                   background:${present?'rgba(34,197,94,0.15)':'rgba(239,68,68,0.12)'};
                   color:${present?'var(--green)':'var(--red)'};
                   border:1px solid ${present?'rgba(34,197,94,0.3)':'rgba(239,68,68,0.3)'};">
-                  ${present?'✓':'✗'} ${st.coach.split(' ')[0]}</span>`;
+                  ${present?'✓':'✗'} ${st.coach}</span>`;
               }).join('')}
             </div>
           </div>
@@ -1006,13 +1044,70 @@ function renderPractice() {
           ${w.stations.map(st => {
             const coachPresent = avail[st.coach] !== false;
             return `<div class="week-row" style="${coachPresent?'':'opacity:0.4'}">
-              <div class="label">${st.coach.split(' ')[0]}</div>
+              <div class="label">${st.coach}</div>
               <div>${coachPresent ? (st.drill||'—') : '<em style="color:var(--text2)">Unavailable</em>'}</div>
             </div>`;
           }).join('')}
         </div>
       </div>`;
     }).join('')}`;
+}
+
+// ─── DAILY ROUTINE CRUD (#27) ────────────────────────────────────────────────
+let editingRoutineIdx = null;
+
+function openAddRoutineRow() {
+  editingRoutineIdx = null;
+  document.getElementById('routineModalTitle').textContent = 'Add Routine Row';
+  document.getElementById('rrTime').value = '';
+  document.getElementById('rrActivity').value = '';
+  document.getElementById('rrFocus').value = '';
+  document.getElementById('routineDeleteBtn').style.display = 'none';
+  document.getElementById('routineModal').classList.add('open');
+}
+
+function openEditRoutineRow(idx) {
+  editingRoutineIdx = idx;
+  const r = (state.dailyRoutine || DEFAULT_DAILY_ROUTINE)[idx];
+  document.getElementById('routineModalTitle').textContent = 'Edit Routine Row';
+  document.getElementById('rrTime').value     = r.time;
+  document.getElementById('rrActivity').value = r.activity;
+  document.getElementById('rrFocus').value    = r.focus;
+  document.getElementById('routineDeleteBtn').style.display = 'block';
+  document.getElementById('routineModal').classList.add('open');
+}
+
+function saveRoutineRow() {
+  const time     = document.getElementById('rrTime').value.trim();
+  const activity = document.getElementById('rrActivity').value.trim();
+  const focus    = document.getElementById('rrFocus').value.trim();
+  if (!activity) { showToast('Enter an activity name'); return; }
+  if (!state.dailyRoutine) state.dailyRoutine = JSON.parse(JSON.stringify(DEFAULT_DAILY_ROUTINE));
+  const row = { time, activity, focus };
+  if (editingRoutineIdx !== null) {
+    state.dailyRoutine[editingRoutineIdx] = row;
+    showToast('Row updated');
+  } else {
+    state.dailyRoutine.push(row);
+    showToast('Row added');
+  }
+  saveTeamState(currentTeam, state);
+  closeRoutineModal();
+  renderDailyRoutine();
+}
+
+function deleteRoutineRow() {
+  if (editingRoutineIdx === null) return;
+  if (!confirm('Delete this routine row?')) return;
+  state.dailyRoutine.splice(editingRoutineIdx, 1);
+  saveTeamState(currentTeam, state);
+  closeRoutineModal();
+  renderDailyRoutine();
+  showToast('Row deleted');
+}
+
+function closeRoutineModal() {
+  document.getElementById('routineModal').classList.remove('open');
 }
 
 // ─── PRACTICE CRUD ───────────────────────────────────────────────────────────
@@ -1616,6 +1711,9 @@ document.getElementById('newGameModal').addEventListener('click', function(e) {
 });
 document.getElementById('swapModal').addEventListener('click', function(e) {
   if (e.target === this) closeSwapModal();
+});
+document.getElementById('routineModal').addEventListener('click', function(e) {
+  if (e.target === this) closeRoutineModal();
 });
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
