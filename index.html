@@ -1355,7 +1355,8 @@ function createSession() {
 
 function toggleSessionLock() {
   const sessStore = getSessionsStore(currentTeam);
-  const session   = getActiveSession();
+  if (!sessStore || !sessStore.sessions.length) return;
+  const session = sessStore.sessions.find(s => s.id === sessStore.activeSessionId) || sessStore.sessions[0];
   if (!session) return;
   const isLocked = session.locked;
   if (!isLocked && !confirm('Lock this game? It will become read-only.')) return;
