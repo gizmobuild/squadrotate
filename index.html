@@ -1349,7 +1349,7 @@ function toggleSessionLock() {
   if (!session) return;
   const isLocked = session.locked;
   if (!isLocked && !confirm('Lock this game? It will become read-only.')) return;
-  if (isLocked  && !confirm('Unlock this game? You'll be able to edit it again.')) return;
+  if (isLocked  && !confirm("Unlock this game? You'll be able to edit it again.")) return;
   session.locked = !isLocked;
   saveSessionsStore(currentTeam, sessStore);
   renderSessionBar();
