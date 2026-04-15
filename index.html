@@ -859,7 +859,8 @@ function renderShifts() {
         </div>
         <span>${fieldCount} on field</span>
       </div>`;
-    // Insert sub diff banner before shifts 2-6
+    container.appendChild(card);
+    // Insert diff banner before this card — must be after appendChild so card is a valid reference node
     if (s > 0) {
       const prevSd = state.shifts[s-1] || {};
       const banner = renderShiftDiffBanner(prevSd, sd, present);
@@ -869,7 +870,6 @@ function renderShifts() {
         container.insertBefore(bannerEl.firstChild, card);
       }
     }
-    container.appendChild(card);
 
     const body = document.getElementById(`sb${s}`);
     present.forEach(p => {
