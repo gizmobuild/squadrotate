@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SquadRotate</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230f172a' stroke='%2322c55e' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='5.5' fill='%23f1f5f9'/%3E%3Cpolygon points='16,10.5 17.6,15.2 22.5,15.2 18.5,18.1 20.1,22.8 16,19.9 11.9,22.8 13.5,18.1 9.5,15.2 14.4,15.2' fill='%230f172a'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root {
     --green: #22c55e;
@@ -34,7 +35,7 @@
   .logo { font-size: 1.15rem; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
   .help-link { font-size: 0.72rem; color: var(--text2); text-decoration: none; padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface2); white-space: nowrap; transition: all 0.15s; }
   .help-link:hover { color: var(--green); border-color: var(--green); }
-  .session-label { font-size: 0.75rem; color: var(--text2); text-align: right; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .session-label { font-size: 0.75rem; color: var(--text2); text-align: right; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .session-label.has-session { color: var(--text); }
   .session-label.is-locked { color: var(--yellow); }
   .export-btn { padding: 6px 11px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid var(--green); background: rgba(34,197,94,0.1); color: var(--green); white-space: nowrap; }
@@ -51,7 +52,7 @@
   nav button.active { color: var(--green); border-bottom-color: var(--green); }
 
   /* VIEWS */
-  .view { display: none; padding: 10px; }
+  .view { display: none; padding: 14px; }
   .view.active { display: block; }
 
   /* ABSENT PANEL */
@@ -63,7 +64,7 @@
 
   /* BUTTONS */
   .action-bar { display: flex; gap: 7px; margin-bottom: 10px; }
-  .btn { padding: 7px 13px; border-radius: 6px; border: none; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn { padding: 9px 14px; border-radius: 6px; border: none; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s; min-height: 44px; }
   .btn-primary { background: var(--green); color: #0f172a; }
   .btn-primary:hover { background: #16a34a; }
   .btn-secondary { background: var(--surface2); color: var(--text); }
@@ -79,7 +80,7 @@
   .shift-error-item { font-size: 0.72rem; color: var(--red); display: flex; align-items: flex-start; gap: 5px; }
   .shift-error-item::before { content: '→'; flex-shrink: 0; }
   .shift-header { display: flex; align-items: center; justify-content: space-between; padding: 7px 11px; background: var(--surface2); }
-  .shift-title { font-weight: 700; font-size: 0.88rem; }
+  .shift-title { font-weight: 700; font-size: 0.92rem; }
   .shift-score { display: flex; align-items: center; gap: 7px; font-size: 0.78rem; }
   .traffic-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
   .traffic-green { background: var(--green); box-shadow: 0 0 5px var(--green); }
@@ -88,9 +89,9 @@
 
   .shift-body { padding: 7px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
   .player-row { display: flex; align-items: center; padding: 8px 6px; border-radius: 5px; background: var(--bg); gap: 4px; min-height: 44px; }
-  .player-name { font-size: 0.76rem; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-name { font-size: 0.82rem; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player-name.benched { color: var(--text2); }
-  .role-select { font-size: 0.75rem; padding: 5px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; min-height: 36px; flex-shrink: 0; }
+  .role-select { font-size: 0.8rem; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; min-height: 40px; flex-shrink: 0; }
   .role-select.role-gk  { border-color: var(--gk);    color: var(--gk); }
   .role-select.role-def { border-color: var(--def);   color: var(--def); }
   .role-select.role-mid { border-color: var(--mid);   color: var(--mid); }
@@ -109,8 +110,8 @@
 
   /* SHIFT DIFF BANNER */
   .shift-diff { margin: 2px 0; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 6px 11px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .shift-diff-row { display: flex; align-items: center; gap: 5px; font-size: 0.74rem; flex-wrap: wrap; }
-  .diff-label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text2); min-width: 36px; }
+  .shift-diff-row { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; flex-wrap: wrap; }
+  .diff-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text2); min-width: 40px; }
   .diff-chip { padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 500; }
   .diff-off  { background: rgba(239,68,68,0.15);  color: var(--red); }
   .diff-on   { background: rgba(34,197,94,0.15);  color: var(--green); }
@@ -120,8 +121,8 @@
   .stats-panel { background: var(--surface); border-radius: 10px; margin-top: 9px; overflow: hidden; border: 1px solid var(--border); }
   .stats-panel h3 { padding: 7px 11px; font-size: 0.7rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; background: var(--surface2); }
   .stats-table { width: 100%; font-size: 0.74rem; border-collapse: collapse; }
-  .stats-table th { padding: 5px 9px; text-align: left; color: var(--text2); font-weight: 500; border-bottom: 1px solid var(--border); }
-  .stats-table td { padding: 4px 9px; border-bottom: 1px solid rgba(71,85,105,0.3); }
+  .stats-table th { padding: 6px 9px; text-align: left; color: var(--text2); font-weight: 500; font-size: 0.78rem; border-bottom: 1px solid var(--border); }
+  .stats-table td { padding: 6px 9px; font-size: 0.8rem; border-bottom: 1px solid rgba(71,85,105,0.3); }
   .stats-table tr:last-child td { border-bottom: none; }
   .bar-bg { background: var(--surface2); border-radius: 3px; height: 5px; width: 50px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 3px; }
   .bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width 0.3s; }
@@ -135,9 +136,9 @@
   .matrix-panel { background: var(--surface); border-radius: 10px; margin-top: 9px; overflow-x: auto; border: 1px solid var(--border); }
   .matrix-panel h3 { padding: 7px 11px; font-size: 0.7rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; background: var(--surface2); white-space: nowrap; }
   .matrix-table { width: 100%; font-size: 0.74rem; border-collapse: collapse; min-width: 300px; }
-  .matrix-table th { padding: 5px 9px; text-align: center; color: var(--text2); font-weight: 500; border-bottom: 1px solid var(--border); }
+  .matrix-table th { padding: 6px 9px; text-align: center; color: var(--text2); font-weight: 500; font-size: 0.78rem; border-bottom: 1px solid var(--border); }
   .matrix-table th:first-child { text-align: left; }
-  .matrix-table td { padding: 4px 9px; text-align: center; border-bottom: 1px solid rgba(71,85,105,0.3); }
+  .matrix-table td { padding: 6px 9px; font-size: 0.8rem; text-align: center; border-bottom: 1px solid rgba(71,85,105,0.3); }
   .matrix-table td:first-child { text-align: left; font-weight: 500; }
   .matrix-table tr:last-child td { border-bottom: none; }
   .mc { display: inline-block; min-width: 22px; padding: 1px 5px; border-radius: 4px; font-weight: 600; }
@@ -162,7 +163,7 @@
   /* CHALKBOARD (#13) */
   .chalkboard { background: #166534; border-radius: 8px; padding: 8px 10px; margin: 6px 7px 0; display: flex; flex-direction: column; gap: 4px; }
   .chalk-row { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
-  .chalk-row-label { font-size: 0.58rem; text-align: center; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px; }
+  .chalk-row-label { font-size: 0.64rem; text-align: center; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px; }
   .chalk-chip { padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; color: #fff; white-space: nowrap; }
   .chalk-gk   { background: rgba(168,85,247,0.7); }
   .chalk-def  { background: rgba(59,130,246,0.7);  }
@@ -253,17 +254,45 @@
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); color: var(--text); padding: 9px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; transition: transform 0.3s; z-index: 300; border: 1px solid var(--border); white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* Prevent iOS from zooming into inputs (requires font-size >= 16px) */
+  input, select, textarea { font-size: 16px !important; }
+
   @media (min-width: 540px)  { .shift-body { grid-template-columns: repeat(3, 1fr); } .roster-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 900px)  { .roster-grid { grid-template-columns: repeat(3, 1fr); } .view { max-width: 960px; margin: 0 auto; } }
+
+  #trial-gate {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem;
+  }
+  #trial-gate .gate-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 2.5rem; max-width: 420px; width: 100%; text-align: center;
+  }
+  #trial-gate h1 { font-size: 1.4rem; font-weight: 800; color: var(--text); margin: 0.75rem 0; }
+  #trial-gate p  { color: var(--text2); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.75rem; }
+  #trial-gate .gate-cta {
+    display: inline-block; background: var(--green); color: #0f172a;
+    font-weight: 700; padding: 0.65rem 1.5rem; border-radius: 8px;
+    text-decoration: none; font-size: 0.9rem;
+  }
 </style>
 </head>
 <body>
+
+<div id="trial-gate">
+  <div style="text-align:center">
+    <div style="font-size:2rem;margin-bottom:0.75rem">⚽</div>
+    <div style="color:var(--text2);font-size:0.9rem">Loading…</div>
+  </div>
+</div>
 
 <header>
   <div class="header-top">
     <div class="logo">⚽ SquadRotate</div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <a class="help-link" href="help/" title="How to use SquadRotate">? Help</a>
+      <a class="help-link" href="help/" title="How to use SquadRotate">Help?</a>
       <span class="session-label" id="sessionLabel">vs. Opponent · Date</span>
     </div>
   </div>
@@ -451,6 +480,59 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ─── TRIAL GATE ──────────────────────────────────────────────────────────────
+const _SB_URL = 'https://spkxzwbijgwdlzbhecwu.supabase.co';
+const _SB_KEY = 'sb_publishable_MBSJhJqoVCuRwaiaHrgMFw_tC7c2G1Y';
+const _SESSION_KEY = 'sq_session';
+
+function _getSession() {
+  try {
+    const raw = localStorage.getItem(_SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (new Date(s.expiresAt) < new Date()) { localStorage.removeItem(_SESSION_KEY); return null; }
+    return s;
+  } catch { return null; }
+}
+
+function _showGateError(type) {
+  const isExpired = type === 'expired';
+  document.getElementById('trial-gate').innerHTML = `
+    <div class="gate-card">
+      <div style="font-size:2.5rem">⚽</div>
+      <h1>${isExpired ? 'Your trial has ended' : 'Access link invalid'}</h1>
+      <p>${isExpired
+        ? 'Your 60-day trial has ended. Upgrade to keep your lineups and game history.'
+        : "This access link isn't valid or has already been used. Check your email for your original invitation."
+      }</p>
+      <a class="gate-cta" href="https://squadrotate.com">Back to squadrotate.com</a>
+    </div>
+  `;
+}
+
+(async function checkTrialAccess() {
+  const trialToken = new URLSearchParams(window.location.search).get('trial');
+
+  if (trialToken) {
+    const _sb = supabase.createClient(_SB_URL, _SB_KEY);
+    const { data, error } = await _sb.rpc('activate_trial_token', { p_token: trialToken });
+    if (error || !data || data.error) {
+      _showGateError(data?.error === 'expired' ? 'expired' : 'invalid');
+      return;
+    }
+    localStorage.setItem(_SESSION_KEY, JSON.stringify({ email: data.email, expiresAt: data.expires_at }));
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  if (!_getSession()) {
+    _showGateError('invalid');
+    return;
+  }
+
+  // Valid session: lift the gate
+  document.getElementById('trial-gate').remove();
+})();
+
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 const ROLES      = ['Goalkeeper','Defense','Midfield','Striker','Bench'];
 const ROLE_ABBR  = { Goalkeeper:'GK', Defense:'DEF', Midfield:'MID', Striker:'STR', Bench:'BN' };
@@ -1395,6 +1477,14 @@ function clearAllShifts() {
   showToast('Shifts cleared');
 }
 
+function positionShiftsPlayed(playerId, role, beforeShift) {
+  let n = 0;
+  for (let s = 0; s < beforeShift; s++) {
+    if ((state.shifts[s] || {})[playerId] === role) n++;
+  }
+  return n;
+}
+
 function autoAssign() {
   const present = activePlayers();
   if (!present.length) { showToast('No players available'); return; }
@@ -1409,10 +1499,10 @@ function autoAssign() {
     const pool = [...present];
     const quota = {...getFormation()};
 
-    // 1. Goalkeeper — rotate, fewest GK shifts first
+    // 1. Goalkeeper — rotate, fewest GK shifts first; random tiebreak
     const gkOk = pool.filter(p => p.positions.includes('Goalkeeper'));
     if (gkOk.length) {
-      gkOk.sort((a,b) => goalieCount[a.id] - goalieCount[b.id]);
+      gkOk.sort((a,b) => goalieCount[a.id] - goalieCount[b.id] || Math.random() - 0.5);
       const gk = gkOk[0];
       assigned[gk.id] = 'Goalkeeper';
       goalieCount[gk.id]++;
@@ -1420,11 +1510,17 @@ function autoAssign() {
       quota.Goalkeeper--;
     }
 
-    // 2. Fill DEF, MID, STR by preference, balancing shifts played
+    // 2. Fill DEF, MID, STR by preference — prefer players who've played this role least,
+    //    then fewest total shifts, then power; random tiebreak keeps lineups varied
     for (const role of ['Defense','Midfield','Striker']) {
       let slots = quota[role];
       const cands = pool.filter(p => !assigned[p.id] && p.positions.includes(role));
-      cands.sort((a,b) => shiftsPlayed(a.id,s) - shiftsPlayed(b.id,s) || b.power - a.power);
+      cands.sort((a,b) =>
+        positionShiftsPlayed(a.id, role, s) - positionShiftsPlayed(b.id, role, s) ||
+        shiftsPlayed(a.id, s) - shiftsPlayed(b.id, s) ||
+        b.power - a.power ||
+        Math.random() - 0.5
+      );
       for (let i = 0; i < cands.length && slots > 0; i++) {
         const p = cands[i];
         assigned[p.id] = role;
@@ -1750,7 +1846,7 @@ function openSwapModal(shiftIdx, playerId, newRole, oldRole) {
 
   document.getElementById('swapCandidates').innerHTML = candidates.length
     ? candidates.map(c => `
-        <div class="swap-candidate" onclick="executeSwap(${shiftIdx},${playerId},'${newRole}',${c.player.id},'${c.currentRole}')">
+        <div class="swap-candidate" onclick="executeSwap(${shiftIdx},${playerId},'${newRole}',${c.player.id},'${oldRole}')">
           <div>
             <div class="swap-candidate-info">${c.player.name.split(' ')[0]}</div>
             <div class="swap-candidate-role">Currently: ${ROLE_ABBR[c.currentRole] || c.currentRole} → would move to ${ROLE_ABBR[oldRole] || oldRole}</div>
