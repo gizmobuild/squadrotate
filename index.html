@@ -320,14 +320,14 @@ function phTrack(event, props) {
   <div class="header-top">
     <div class="logo">⚽ SquadRotate</div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <a class="help-link" href="help/" title="How to use SquadRotate">Help?</a>
-      <button id="logout-btn" onclick="handleLogout()" style="display:none">Sign out</button>
       <span class="session-label" id="sessionLabel">vs. Opponent · Date</span>
+      <button id="logout-btn" onclick="handleLogout()" style="display:none">Sign out</button>
+      <a class="help-link" href="help/" title="How to use SquadRotate">Help?</a>
     </div>
   </div>
   <div class="team-switcher">
-    <button class="team-btn" id="btnU78"  onclick="switchTeam('u78')">U7–U8 Navy Blue</button>
-    <button class="team-btn" id="btnU912" onclick="switchTeam('u912')">U9–U12</button>
+    <button class="team-btn" id="btnU78"  onclick="switchTeam('u78')">Team 1</button>
+    <button class="team-btn" id="btnU912" onclick="switchTeam('u912')">Team 2</button>
   </div>
 </header>
 
@@ -621,91 +621,16 @@ function getFormation() {
 // ─── TEAM DEFINITIONS ────────────────────────────────────────────────────────
 const TEAMS = {
   u78: {
-    label: 'U7–U8 Navy Blue',
+    label: 'Team 1',
     storageKey: 'squadrotate_u78_v1',
     defaultPlayers: [],
-    weeklyAgenda: [
-      { dates:'TBD', strategy:'The 3-1-2 Shape: Show the "Base" of 3.',
-        stations:[
-          { coach:'Brennan',       drill:'Footwork: Ladder drills + Red Light Green Light.' },
-          { coach:'Coach Keenan',  drill:'Dribbling: Sharks & Minnows (Keep ball close).' },
-          { coach:'Coach Gary',    drill:'Shooting: Volley/Redirection into pop-up goals.' },
-        ]},
-      { dates:'TBD', strategy:'The Midfield "Pivot": How the 1 helps the 3 and the 2.',
-        stations:[
-          { coach:'Brennan',       drill:'Spacing: Use cones to show the 3 defenders their "lanes."' },
-          { coach:'Coach Keenan',  drill:'Passing: Simple "Inside of the foot" passing in pairs.' },
-          { coach:'Coach Gary',    drill:'Defense: 1v1 "Shielding" (Protecting the ball).' },
-        ]},
-      { dates:'TBD', strategy:'Passing Triangles: Using the Midfielder to move up.',
-        stations:[
-          { coach:'Brennan',       drill:'Rondo: 3v1 circles. Focus on the triangle shape.' },
-          { coach:'Coach Keenan',  drill:'Agility: Ladder drills + Freeze Tag.' },
-          { coach:'Coach Gary',    drill:'Corners: Basics of kicking from the corner flag.' },
-        ]},
-      { dates:'4/14 & 4/21', strategy:'Game Ready: Kick-offs and Sideline behavior.',
-        stations:[
-          { coach:'Brennan',       drill:'Strikers: The "2" forwards practicing passing to each other.' },
-          { coach:'Coach Keenan',  drill:'Defense: Clearing the ball wide (not up the middle).' },
-          { coach:'Coach Gary',    drill:'Scrimmage: 45-min game using the 3-1-2.' },
-        ]},
-      { dates:'4/28 & 5/5', strategy:'Objective: Body positioning. Practice 1v1s where the defender must stay "Goal Side."',
-        stations:[
-          { coach:'Brennan',       drill:'The "Goal Side" Defense: Teaching the 3 to stay between the attacker and our goal.' },
-          { coach:'Coach Keenan',  drill:'Accuracy shooting (hitting corners).' },
-          { coach:'Coach Gary',    drill:'Corner kick "Traffic" (getting kids in the box).' },
-        ]},
-      { dates:'5/12 & 5/19', strategy:'Objective: Team movement. Moving the 3-1-2 block up and down the field together.',
-        stations:[
-          { coach:'Brennan',       drill:'Supporting the Midfielder: The 3 must step up when the 1 moves forward.' },
-          { coach:'Coach Keenan',  drill:'Rondo (4v1).' },
-          { coach:'Coach Gary',    drill:'Ladder drills + 10-yard sprints.' },
-        ]},
-      { dates:'TBD', strategy:'Objective: The "Give and Go." One striker passes, the other shoots.',
-        stations:[
-          { coach:'Brennan',       drill:'Two-Man Attack: Teaching the 2 forwards to pass instead of both chasing.' },
-          { coach:'Coach Keenan',  drill:'Crossing from the wing.' },
-          { coach:'Coach Gary',    drill:'Goalie training (using gloves/basic saves).' },
-        ]},
-      { dates:'TBD', strategy:'Objective: "Heads up" play. Scrimmage where goals only count after 3 passes.',
-        stations:[
-          { coach:'Brennan',       drill:'Full Field Awareness: Looking up before kicking.' },
-          { coach:'Coach Keenan',  drill:'Overlap passing drills.' },
-          { coach:'Coach Gary',    drill:'High-speed dribbling through cones.' },
-        ]},
-    ],
+    weeklyAgenda: [],
   },
   u912: {
-    label: 'U9–U12',
+    label: 'Team 2',
     storageKey: 'squadrotate_u912_v1',
     defaultPlayers: [],
-    weeklyAgenda: [
-      { dates:'4/16 & 4/23', strategy:'Match Readiness: Ref signals and field talk.',
-        stations:[
-          { coach:'Brennan',    drill:'Scrimmage: Stop-and-start coaching to fix positioning.' },
-          { coach:'Ignatius',   drill:'Keepers/D: Goalie glove work + Goal kicks.' },
-        ]},
-      { dates:'4/30 & 5/7', strategy:'Objective: Overlap passing. The outside defenders (3) joining the attack.',
-        stations:[
-          { coach:'Brennan',    drill:'Exploiting the Wings: Using the 3-1-2 to stretch the defense.' },
-          { coach:'Ignatius',   drill:'Technical: Corner kick redirection and volley practice.' },
-        ]},
-      { dates:'5/14 & 5/21', strategy:'Objective: Interceptions. Teaching the Midfielder to "read" the opponent\'s pass.',
-        stations:[
-          { coach:'Brennan',    drill:'Winning the Midfield: The "1" must dominate the center.' },
-          { coach:'Ignatius',   drill:'Conditioning: Ladder drills + Shuttle runs with the ball.' },
-        ]},
-      { dates:'TBD', strategy:'Objective: Tactical "Step." The 3 defenders stepping up together on a whistle.',
-        stations:[
-          { coach:'Brennan',    drill:'Advanced Offside: Pulling the line up.' },
-          { coach:'Ignatius',   drill:'Attack: 2v1 drills (Two strikers vs one defender).' },
-        ]},
-      { dates:'TBD', strategy:'Objective: Shot selection. Knowing when to blast it vs. when to tuck it in.',
-        stations:[
-          { coach:'Brennan',    drill:'Final Third Execution: Finishing with power and accuracy.' },
-          { coach:'Ignatius',   drill:'Possession: Full-field Rondo or 4v4 small-sided games.' },
-        ]},
-    ],
+    weeklyAgenda: [],
   },
 };
 
